@@ -418,8 +418,11 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
         <label class="f" for="monthly"><span>Monatsgehalt brutto<small>Tabellenentgelt ohne Zuschläge</small></span><span class="inp"><input id="monthly" type="text" data-num="1" step="0.01" min="0" inputmode="decimal"><span class="unit">€</span></span></label>
         <label class="f" for="hours"><span>Wochenstunden<small>Laut Vertrag</small></span><span class="inp"><input id="hours" type="text" data-num="1" step="0.5" min="1" inputmode="decimal"><span class="unit">Std</span></span></label>
         <label class="f" for="zuRateIn"><span>Stundensatz für Zuschläge<small id="zuRateHint"></small></span><span class="inp"><input id="zuRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="automatisch"><span class="unit">€</span></span></label>
+        <label class="f" for="absRateIn"><span>Zulagen bei Urlaub und Krankheit<small>Durchschnitt je Stunde, den du an Urlaubs und Krankheitstagen weiter bekommst. Steht auf der Abrechnung als Urlaubsentgelt oder Entgeltfortzahlung.</small></span><span class="inp"><input id="absRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="0"><span class="unit">€</span></span></label>
       </div>
       <label class="f" for="wage" id="pmHour"><span>Stundenlohn<small>Brutto pro Stunde</small></span><span class="inp"><input id="wage" type="text" data-num="1" step="0.01" min="0" inputmode="decimal"><span class="unit">€</span></span></label>
+      <label class="f" for="zugSel" id="zugRow"><span>EVG-ZUG<small>Zusatzgeld im Dezember. Schichtarbeit: 2026 2,6 %, ab 2027 4,6 % vom Jahrestabellenentgelt</small></span><span class="inp"><select id="zugSel"><option value="s">Schichtarbeit (ZUG-S)</option><option value="s2">Schicht, 2 freie Tage gewählt</option><option value="n">Ohne Schichtarbeit</option><option value="off">Nicht einrechnen</option></select></span></label>
+      <label class="f" for="payDayIn"><span>Zahltag<small>Tag im Monat, an dem das Geld kommt. Bei der Bahn der 25.</small></span><span class="inp"><input id="payDayIn" type="text" data-num="1" step="1" min="1" inputmode="numeric" placeholder="25"><span class="unit">.</span></span></label>
       <label class="f" for="land"><span>Bundesland<small>Für die Feiertage am Arbeitsort</small></span><span class="inp"><select id="land"></select></span></label>
     </div>
     <div class="sec">Weitere Posten auf deiner Abrechnung</div>
@@ -810,10 +813,19 @@ let cur=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})();
 let editing=null;
 const cfg=()=>{const c=state.cfg||{tarif:"gesetz",wage:0,land:"BW",rules:clone(PRESETS.gesetz.rules)};if(!c.payMode)c.payMode="hour";if(c.tarif==="dbevg"&&!c.modified&&!c.mig3&&c.rules){c.rules.mNight=0;c.rules.mShift=0;c.mig3=1}if(c.rules&&(c.rules.delay===undefined||c.rules.roundMonth===undefined)&&PRESETS[c.tarif]){const P=PRESETS[c.tarif].rules;["mNight","mShift","delay","zuBreak","roundMonth"].forEach(k=>{if(c.rules[k]===undefined)c.rules[k]=P[k]})}return c};
 const isMonth=c=>c.payMode==="month";
+/* Zahltag: eigener Wert, sonst bei Bahn Tarifen der 25. */
+const payDay=c=>{const d=Math.round(+c.payDay||0);return d>=1&&d<=31?d:(/^db/.test(c.tarif||"")?25:0)};
+const payWhen=(c,y,m)=>{const d=payDay(c);return d?`am ${Math.min(d,new Date(y,m+1,0).getDate())}. ${MONTHS[m]}`:`im ${MONTHS[m]}`};
 const taxCfg=c=>{if(!c.tax)c.tax={stkl:1,kinder:0,kirche:false,kvz:2.9,kinderlos23:true,pvKinder:0};return c.tax};
 /* Was im Monat m tatsächlich aufs Konto kommt: Grundgehalt dieses Monats + Zuschläge aus dem Monat (m minus Verzögerung) */
 const ITEMTYPES={umw:"Gehaltsumwandlung, z. B. Firmenrad (vor Steuer und Sozialabgaben)",umwSt:"Gehaltsumwandlung nur steuerfrei, z. B. PC Leasing",gwv:"Geldwerter Vorteil, wird nur versteuert",plus:"Zusätzliches Brutto, z. B. feste Zulage",netAbz:"Abzug vom Netto, z. B. Kantine",netPlus:"Zuschuss netto, z. B. Erstattung"};
 function itemSums(c){const S={umw:0,umwSt:0,gwv:0,plus:0,netAbz:0,netPlus:0};(c.items||[]).forEach(it=>{if(S[it.t]!=null)S[it.t]+=Math.max(0,+it.v||0)});return S}
+/* EVG-ZUG: Zusatzgeld der EVG bei der DB, im Dezember. Schichtarbeit (ZUG-S): 2026 2,6 %, ab 2027 4,6 % des Jahrestabellenentgelts
+   (mit 2 freien Tagen statt Geld 3,73 %). Ohne Schicht ab 2027: 2,0 %. Quelle: evg-online.org/unsere-themen/dein-geld/evg-zug */
+function zugFor(c,y,m){
+  if(c.tarif!=="dbevg"||m!==11||!isMonth(c)||c.zug==="off")return 0;
+  const z=c.zug||"s",pct=y===2026?(z==="n"?0:2.6):y>=2027?(z==="n"?2.0:z==="s2"?3.73:4.6):0;
+  return Math.round((+c.monthly||0)*12*pct)/100}
 /* Was im Monat m aufs Konto kommt: erst das Gehalt mit allen Abzügen, dann die Zulagen aus dem Vormonat obendrauf */
 function payout(y,m){
   const c=cfg(),dl=+(c.rules.delay??1),back=new Date(y,m-dl,1);
@@ -827,7 +839,10 @@ function payout(y,m){
   const taxfree=Math.min(B.taxfree,B.zu),zuTaxable=B.zu-taxfree;
   const n1=np(taxB+zuTaxable,svB+zuTaxable);
   const zuAbz=ded(n1)-ded(n0),zuNet=B.zu-zuAbz;
-  return{delay:dl,back,base,S,cash,n0,salNet,ded0:ded(n0),zu:B.zu,taxfree,zuAbz,zuNet,total:salNet+zuNet};
+  /* Einmalzahlung EVG-ZUG: Steuer nach Jahresrechnung (Unterschied mit und ohne Zahlung), Sozialabgaben mit dem gleichen Satz wie das Gehalt */
+  const one=zugFor(c,y,m);let oneNet=0;
+  if(one>0){const nA=np(taxB+one/12,svB+one/12),tx=n=>n.lst+n.soli+n.kist;oneNet=one-(tx(nA)-tx(n0))*12-(svB>0?one*n0.sv/svB:0)}
+  return{delay:dl,back,base,S,cash,n0,salNet,ded0:ded(n0),zu:B.zu,taxfree,zuAbz,zuNet,one,oneNet,total:salNet+zuNet+oneNet};
 }
 /* Stundensatz für Zuschläge: Monatsentgelt geteilt durch (Wochenstunden x 4,348), wie im TVöD */
 const derivedRate=c=>(+c.hours>0)?(+c.monthly||0)/(+c.hours*4.348):0;
@@ -854,6 +869,8 @@ function monthTotals(y,m){
     const w=zuRate(cfg()),rt=x=>x.u==="eur"?(+x.v||0):w*(+x.v||0)/100;let d=0;
     for(const k of ["night","sat","sun","hol","eve","high"]){const h=Math.round(T.m[k]/60);const ne=h*rt(R[k]);if(T.m[k]>0){d+=ne-T.e[k];T.e[k]=ne;T.m[k]=h*60}}
     T.zu+=d;}
+  /* Urlaub und Krankheit: viele Arbeitgeber (z. B. die Bahn) zahlen den Durchschnitt der Zulagen je Stunde weiter */
+  T.e.abs=0;T.absH=0;{const ar=+cfg().absRate||0,n=(T.count.U||0)+(T.count.K||0);if(ar>0&&n>0){T.absH=n*((+cfg().hours||39)/5);T.e.abs=Math.round(ar*T.absH*100)/100;T.zu+=T.e.abs}}
   if(+R.mNight>0&&T.m.night>0){T.e.month=+R.mNight;T.monthLbl="Pauschale bei Nachtarbeit"}
   else if(+R.mShift>0&&T.shifts>0){T.e.month=+R.mShift;T.monthLbl="Schichtzulage pauschal"}
   T.zu+=T.e.month;
@@ -865,19 +882,23 @@ function render(){
   $("demo").hidden=!Object.values(state.shifts).some(s=>s.demo);
   const T=monthTotals(y,m);
   const P=payout(y,m),dl=P.delay;
-  $("hLbl").textContent=`Aufs Konto im ${MONTHS[m]} ca.`;
+  const onDay=payWhen(c,y,m);
+  $("hLbl").textContent=`Aufs Konto ${onDay} ca.`;
   $("hNetto").textContent=eur0(P.total);
-  $("hBrutto").textContent=`Gehalt netto ${eur0(P.salNet)} + Zulagen netto ${eur0(P.zuNet)}`;
+  $("hBrutto").textContent=`Gehalt netto ${eur0(P.salNet)} + Zulagen netto ${eur0(P.zuNet)}`+(P.one>0?` + EVG-ZUG ${eur0(P.oneNet)}`:"");
+  const A=(state.actual||{})[`${y}-${pad(m+1)}`];
+  if(A){$("hLbl").textContent=`Aufs Konto ${onDay} laut Abrechnung`;$("hNetto").textContent=eur0(A.total);$("hBrutto").textContent=A.zu>0?`Gehalt netto ${eur0(A.sal)} + Zulagen netto ${eur0(A.zu)}`:`Netto ${eur0(A.sal)}`}
   $("hZu").textContent=`+${eur0(T.zu)} Zuschläge im ${MONTHS[m]}`;
   {const S=P.S,bm=MONTHS[P.back.getMonth()],L=[[isMonth(cfg())?"Gehalt brutto":"Grundlohn brutto",eur(P.base+S.plus)]];
    if(S.umw+S.umwSt>0)L.push(["Gehaltsumwandlung (Rad, Leasing)","−"+eur(S.umw+S.umwSt)]);
    L.push(["Steuern und Sozialabgaben","−"+eur(P.ded0)]);
    if(S.netAbz>0)L.push(["Abzüge vom Netto","−"+eur(S.netAbz)]);
    if(S.netPlus>0)L.push(["Zuschüsse netto","+"+eur(S.netPlus)]);
-   L.push(["Gehalt netto",eur(P.salNet),"sub"],[`+ Zulagen aus ${dl>0?bm:MONTHS[m]} netto`,P.zu>0.004?"+"+eur(P.zuNet):"keine Schichten eingetragen"],["Gesamt aufs Konto",eur(P.total),"total"]);
-   $("payCard").innerHTML=`<div class="sec" style="margin:8px 0 2px">Dein Geld im ${MONTHS[m]}</div>`+rows(L)+`<button type="button" class="linkbtn" id="payMore" style="margin:2px 0 10px">Ganze Rechnung ansehen</button>`;
+   L.push(["Gehalt netto",eur(P.salNet),"sub"],[`+ Zulagen aus ${dl>0?bm:MONTHS[m]} netto`,P.zu>0.004?"+"+eur(P.zuNet):"keine Schichten eingetragen"],...(P.one>0?[[`+ EVG-ZUG netto (brutto ${eur0(P.one)})`,"+"+eur(P.oneNet)]]:[]),...(A?[["Zulo Schätzung",eur(P.total)],["Laut deiner Abrechnung",eur(A.total),"total"]]:[["Gesamt aufs Konto",eur(P.total),"total"]]));
+   const aNote=A?`<p class="note" style="margin:4px 0 2px">Echter Betrag aus deiner Abrechnung: Gehalt netto ${eur(A.sal)}${A.zu>0?` + Zulagen${A.zuMo?" aus "+MONTHS[A.zuMo-1]:""} netto ${eur(A.zu)}`:""}.${Math.abs(A.total-P.total)>=1?` Die Schätzung liegt ${eur(Math.abs(A.total-P.total))} ${A.total>P.total?"darunter":"darüber"}, meist wegen Zahlungen, die nicht an Schichtzeiten hängen, etwa Prämien, Fahrentschädigung oder Überzeitzulage.`:""}</p>`:"";
+   $("payCard").innerHTML=`<div class="sec" style="margin:8px 0 2px">Dein Geld im ${MONTHS[m]}</div>`+rows(L)+aNote+`<button type="button" class="linkbtn" id="payMore" style="margin:2px 0 10px">Ganze Rechnung ansehen</button>`;
    $("payMore").onclick=()=>showView("sum");}
-  $("hTf").textContent=dl>0?`brutto, kommen im ${MONTHS[new Date(y,m+dl,1).getMonth()]} aufs Konto`:(T.taxfree>0.5?`davon ca. ${eur0(T.taxfree)} steuerfrei`:"");
+  $("hTf").textContent=dl>0?(()=>{const f=new Date(y,m+dl,1);return `brutto, kommen ${payWhen(c,f.getFullYear(),f.getMonth())} aufs Konto`})():(T.taxfree>0.5?`davon ca. ${eur0(T.taxfree)} steuerfrei`:"");
   $("hSub").textContent=isMonth(c)?`${hrs(T.paid)} · ${T.shifts} Schichten · Gehalt ${eur0(+c.monthly||0)} + Zuschläge`:`${hrs(T.paid)} · ${T.shifts} Schichten · ${fmt(+c.wage||0)} € pro Stunde`;
   $("hTarif").textContent=PRESETS[c.tarif].name+(c.modified?" (angepasst)":"");
   const g=$("grid");g.innerHTML="";
@@ -912,6 +933,7 @@ function renderSummary(T){
   for(const k of ["night","sat","sun","hol","eve","high"])if(T.e[k]>0.004)money.push([`${LBL[k]} ${rateTxt(R[k])}`,eur(T.e[k])]);
   if(T.e.shift>0.004)money.push(["Zuschlag je Schicht (0 bis 4 Uhr)",eur(T.e.shift)]);
   if(T.e.month>0.004)money.push([T.monthLbl,eur(T.e.month)]);
+  if(T.e.abs>0.004)money.push([`Urlaub und Krankheit (${fmt(T.absH,1)} Std × ${fmt(+cfg().absRate)} €)`,eur(T.e.abs)]);
   money.push(["Zuschläge gesamt",eur(T.zu)],["Brutto",eur(T.base+T.zu),"total"]);
   if(T.taxfree>0.004)money.push(["davon steuerfrei (Schätzung)",eur(T.taxfree),"good"]);
   $("sMoney").innerHTML=`<div class="bar"><span style="width:${T.base/tot*100}%;background:var(--muted)"></span><span style="width:${T.zu/tot*100}%;background:var(--accent)"></span></div>`+rows(money);
@@ -936,7 +958,8 @@ function renderSummary(T){
    if(P.taxfree>0.004)L.push(["davon steuer und abgabenfrei",eur(P.taxfree),"good"]);
    if(P.zuAbz>0.004)L.push(["Abzüge auf die übrigen Zulagen","−"+eur(P.zuAbz)]);
    L.push([`+ Zulagen netto`,eur(P.zuNet),"sub"]);
-   L.push([`Aufs Konto im ${MONTHS[m]} ca.`,eur(P.total),"total"]);
+   if(P.one>0)L.push(["+ EVG-ZUG brutto (Zusatzgeld)",eur(P.one)],["+ EVG-ZUG netto",eur(P.oneNet),"sub"]);
+   L.push([`Aufs Konto ${payWhen(cfg(),y,m)} ca.`,eur(P.total),"total"]);
    if(dl>0)L.push([`Zuschläge aus ${MONTHS[m]} kommen im`,mn(fwd)]);
    $("sPay").innerHTML=rows(L);}
   $("sShifts").innerHTML=rows(Object.entries(TYPES).map(([k,t])=>[t.name,(T.count[k]||0)+"×"]));
@@ -1051,7 +1074,7 @@ function renderSettings(){
   $("sTarifHint").textContent=P.hint;
   $("sTarifStand").innerHTML=`Stand: ${P.stand}${P.src?` · <a href="${P.src}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Quelle</a>`:""}`;
   $("payMode").value=c.payMode;$("pmMonth").hidden=!isMonth(c);$("pmHour").hidden=isMonth(c);
-  $("wage").value=c.wage||"";$("monthly").value=c.monthly||"";$("hours").value=c.hours||"";$("zuRateIn").value=c.zuRate||"";
+  $("wage").value=c.wage||"";$("monthly").value=c.monthly||"";$("hours").value=c.hours||"";$("zuRateIn").value=c.zuRate||"";$("absRateIn").value=c.absRate||"";$("payDayIn").value=c.payDay||"";$("zugSel").value=c.zug||"s";$("zugRow").hidden=c.tarif!=="dbevg"||!isMonth(c);
   $("zuRateHint").textContent=`Automatisch ${fmt(derivedRate(c))} €. `+((c.tarif==="tvoed"||c.tarif==="tvl")?"Im TVöD und TV-L zählt Stufe 3 deiner Entgeltgruppe. Trag den Satz hier ein, wenn du nicht in Stufe 3 bist.":"Nur ändern, wenn dein Tarif anders rechnet.");
   $("land").innerHTML=landOpts(c.land);
   {const t=taxCfg(c);$("tStkl").value=t.stkl;$("tKinder").value=t.kinder;$("tKirche").value=t.kirche?"1":"0";$("tKvz").value=t.kvz;$("tPvK").value=t.pvKinder;$("tKl").value=t.kinderlos23?"1":"0";}
@@ -1113,7 +1136,7 @@ function renderTpl(){
 }
 $("sTarif").onchange=e=>{const c=cfg();c.tarif=e.target.value;c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Tarif geändert")};
 const numIn=(id,key)=>$(id).onchange=e=>{cfg()[key]=Math.max(0,N(e.target.value)||0);save();renderSettings();render()};
-numIn("wage","wage");numIn("monthly","monthly");numIn("hours","hours");numIn("zuRateIn","zuRate");
+numIn("wage","wage");numIn("monthly","monthly");numIn("hours","hours");numIn("zuRateIn","zuRate");numIn("absRateIn","absRate");numIn("payDayIn","payDay");$("zugSel").onchange=e=>{cfg().zug=e.target.value;save();renderSettings();render()};
 [["tStkl","stkl",1],["tKinder","kinder",1],["tKvz","kvz",1],["tPvK","pvKinder",1],["tKirche","kirche",2],["tKl","kinderlos23",2]].forEach(([id,k,ty])=>$(id).onchange=e=>{const t=taxCfg(cfg());t[k]=ty===2?e.target.value==="1":Math.max(0,N(e.target.value)||0);save();render()});
 $("payMode").onchange=e=>{cfg().payMode=e.target.value;save();renderSettings();render()};
 $("land").onchange=e=>{cfg().land=e.target.value;save();renderSettings();render()};
@@ -1406,6 +1429,10 @@ function dbNormalize(lines){
 function slipParse(lines){
   const src=lines.src||"";
   lines=dbNormalize(lines);const dbCheck=lines.dbCheck||[];
+  /* Abrechnungsläufe: "10.26/1" ist der laufende Monat, "09.26/2" eine Nachberechnung (bei der Bahn kommen so die Zulagen des Vormonats) */
+  const runOf=[],runs={};{let run=null;
+    lines.forEach((l,i)=>{const m=l.match(/(?:^|\s)(\d{2})\.(\d{2})\/(\d{1,2})(?=\s|$)/);if(m&&+m[1]>=1&&+m[1]<=12){const id=m[1]+"."+m[2]+"/"+m[3];run=runs[id]||(runs[id]={id,mo:+m[1],y:2000+ +m[2],nr:+m[3]})}runOf[i]=run})}
+  const totOf=(re,rn)=>{for(let i=0;i<lines.length;i++){if(runOf[i]!==rn)continue;const l=lines[i].replace(/\s+/g," ").trim();if(re.test(l)){const n=l.match(NUMRE);if(n)return Math.abs(pnum(n[0]))}}return null};
   const R={base:[],zu:[],other:[],ded:[]},seen=new Set();const all=lines.join("\n");
   const g=(re,i=1)=>{const m=all.match(re);return m?m[i]:null};
   /* Grunddaten */
@@ -1432,8 +1459,10 @@ function slipParse(lines){
   if(!R.base.some(b=>b.k==="kvz")){const kl=lines.find(l=>/krankenv/i.test(l)&&/\b(\d{1,2},\d{2})\b/.test(l));
     if(kl){const rr=(kl.match(/\b(\d{1,2},\d{2})\b/)||[])[1];const an=rr?N(rr):0;if(an>7.3&&an<10.5){const z=Math.round((an-7.3)*2*100)/100;R.base.push({k:"kvz",l:"Zusatzbeitrag Krankenkasse",v:z,show:fmt(z)+" %"})}}}
   /* Zeilen mit Beträgen */
-  for(const raw of lines){
+  let absA=0,absH=0;
+  for(const [li,raw] of lines.entries()){
     const line=raw.replace(/\s+/g," ").trim();if(!line)continue;
+    const isVar=!!(runOf[li]&&runOf[li].nr>=2);
     const nums=line.match(NUMRE);if(!nums)continue;
     let label=line.slice(0,line.search(NUMRE)).replace(/^[A-Z]?\d{2,5}[A-Z]?\s+/,"").replace(/^[A-Z]{1,2}\d{2,4}\s+/,"").replace(/[\s:.*/]+$/,"").trim();
     if(label.length<3||!/[a-zäöü]{3}/i.test(label))continue;
@@ -1446,7 +1475,11 @@ function slipParse(lines){
     const pre=vals.slice(0,-1).map(Math.abs);
     for(let i=0;i<pre.length&&q==null;i++)for(let j=0;j<pre.length;j++){if(i===j)continue;if(Math.abs(pre[i]*pre[j]-Math.abs(amt))<=Math.max(0.03,Math.abs(amt)*0.006)){q=pre[i];r=pre[j];break}}
     if(q!=null&&i_order(nums,q,r))[q,r]=[r,q];
-    const key=label.toLowerCase();if(seen.has(key))continue;seen.add(key);
+    /* Urlaubsentgelt und Entgeltfortzahlung: Durchschnitt der Zulagen je Stunde */
+    if(/urlaubsentgelt|urlaubslohn|^efz\b|entgeltfortz|lohnfortz|krankenlohn/i.test(label)){const hm=line.match(/(\d+,\d{1,2})\s*(?:st|std|h)\b/i);if(hm&&amt>0){absA+=amt;absH+=N(hm[1])}continue}
+    const key=label.toLowerCase()+(isVar?"|n":"");if(seen.has(key))continue;seen.add(key);
+    if(amt<0&&isVar&&!/rad|bike|leasing|pc\b/i.test(label))continue;
+    if(amt<0&&isVar)continue;
     if(amt<0){
       const t=/pc|laptop|notebook|handy|smartphone|tablet|computer/i.test(label)&&/leasing|überl|ueberl|nutzung/i.test(label)?"umwSt":/rad|bike|leasing|jobrad|fahrrad|e-?bike/i.test(label)?"umw":/vwl|vermögensw|vermoegensw/i.test(label)?"netAbz":"netAbz";
       R.ded.push({l:label,a:-amt,t,on:t==="umw"||t==="umwSt"});continue}
@@ -1458,8 +1491,13 @@ function slipParse(lines){
       if(kind==="shift")R.zu.push({kind,l:label,a:amt,q,r:rate,on:rate!=null&&rate<60,end:!/beginn/i.test(label)});
       else R.zu.push({kind,l:label,a:amt,q,r:rate,pct:pct?N(pct):null,on:(rate!=null&&rate>0.05&&rate<60)||!!pct});
       continue}
-    if(kind||ZUL.test(label)){const once=ONCE.test(label);R.other.push({l:label,a:amt,q,r,once,act:(q!=null||once)?"skip":"plus",kind});continue}
+    if(kind||ZUL.test(label)){const once=ONCE.test(label),nightFlat=/pers\w*\.?\s*nacht|nachtpausch/i.test(label)&&q==null;R.other.push({l:label,a:amt,q,r,once,isVar,nightFlat,act:nightFlat?"mNight":(q!=null||once||isVar)?"skip":"plus",kind});continue}
   }
+  if(absH>0&&absA/absH>0.2&&absA/absH<15)R.abs={rate:Math.round(absA/absH*100)/100,h:absH,a:absA};
+  /* Was wirklich überwiesen wurde */
+  {const main=Object.values(runs).filter(r=>r.nr===1).map(r=>({r,ue:totOf(/^(?:überweisung|ueberweisung|auszahlungsbetrag|auszahlung)\b/i,r)})).find(x=>x.ue>0);
+   if(main){const r=main.r,sal=totOf(/^netto\b/i,r)||main.ue,nach=totOf(/^übertr\w*\.?\s*nachber/i,r)||0,nr=Object.values(runs).find(x=>x.nr>=2);
+     R.pay={ym:`${r.y}-${pad(r.mo)}`,mo:r.mo,y:r.y,total:main.ue,sal:nach>0?sal:main.ue,zu:nach,zuMo:nr?nr.mo:null}}}
   R.check=dbCheck;R.src=src;
   return R;
 }
@@ -1469,14 +1507,16 @@ const ZLBL={night:"Nacht",sun:"Sonntag",hol:"Feiertag",sat:"Samstag",eve:"24. un
 function slipRender(){
   const R=slip,c=cfg(),t=taxCfg(c);let h="";
   const cur={stkl:["I","II","III","IV","V","VI"][(+t.stkl||1)-1],kinder:fmt(+t.kinder||0,1),kirche:t.kirche?"ja":"nein",kvz:fmt(+t.kvz||0)+" %",hours:fmt(+c.hours||0,1)+" Std",monthly:eur(+c.monthly||0),wage:eur(+c.wage||0)};
-  const n=R.base.length+R.zu.length+R.other.length+R.ded.length;
+  const n=R.base.length+R.zu.length+R.other.length+R.ded.length+(R.pay?1:0)+(R.abs?1:0);
   if(!n){$("slRes").innerHTML=`<div class="empty">Zulo hat in dieser Abrechnung keine Werte erkannt. Ist sie eingescannt oder ein Foto? Dann enthält sie keinen lesbaren Text. Probier die PDF aus deinem Mitarbeiterportal oder trag die Werte unten von Hand ein.</div>`;$("slApply").hidden=true;return}
+  if(R.pay)h+=`<div class="sec">Was wirklich aufs Konto kam</div><div class="found"><label class="fi"><input type="checkbox" data-g="pay" data-i="0" checked><span><b>${MONTHS[R.pay.mo-1]} ${R.pay.y}: ${eur(R.pay.total)}</b><small>${R.pay.zu>0?`Gehalt netto ${eur(R.pay.sal)} + Zulagen${R.pay.zuMo?" aus "+MONTHS[R.pay.zuMo-1]:""} netto ${eur(R.pay.zu)}`:`Netto ${eur(R.pay.sal)}`}. Zulo zeigt für diesen Monat dann den echten Betrag statt der Schätzung.</small></span></label></div>`;
+  if(R.abs)h+=`<div class="sec">Urlaub und Krankheit</div><div class="found"><label class="fi"><input type="checkbox" data-g="abs" data-i="0" checked><span><b>${fmt(R.abs.rate)} € Zulagen je Stunde</b><small>Für ${fmt(R.abs.h)} Std Urlaub oder Krankheit kamen ${eur(R.abs.a)} (Urlaubsentgelt, Entgeltfortzahlung). Zulo rechnet das ab jetzt für jeden Tag mit U oder K im Kalender mit ein. Bisher in Zulo: ${fmt(+c.absRate||0)} €</small></span></label></div>`;
   if(R.base.length)h+=`<div class="sec">Grunddaten</div><div class="found">`+R.base.map((b,i)=>`<label class="fi"><input type="checkbox" data-g="base" data-i="${i}" checked><span><b>${esc(b.l)}: ${esc(b.show)}</b><small>Bisher in Zulo: ${esc(cur[b.k]??"")}${b.src?` · Zeile „${esc(b.src)}“`:""}</small></span></label>`).join("")+`</div>`;
   if(R.zu.length)h+=`<div class="sec">Zuschläge mit Satz</div><div class="found">`+R.zu.map((z,i)=>{
     const how=z.r!=null?`${fmt(z.r)} € je ${z.kind==="shift"?"Schicht":"Stunde"}`:`${fmt(z.pct,0)} %`;
     return `<label class="fi${z.on?"":" off"}"><input type="checkbox" data-g="zu" data-i="${i}"${z.on?" checked":""}><span><b>${esc(ZLBL[z.kind])}: ${how}</b><small>${esc(z.l)}${z.q!=null?` · ${fmt(z.q)} × ${fmt(z.r)}`:""} = ${eur(z.a)}</small></span></label>`}).join("")+`</div>`;
-  if(R.other.length)h+=`<div class="sec">Weitere Zulagen auf deiner Abrechnung</div><div class="found">`+R.other.map((o,i)=>`<div class="fi"><span></span><span><b>${esc(o.l)}: ${eur(o.a)}</b><small>${o.q!=null?`${fmt(o.q)} × ${fmt(o.r)} € · `:""}${o.once?"Sieht nach einer Einmalzahlung aus":o.q!=null?"Ändert sich mit deinen Stunden, hier zur Info":"Sieht nach einem festen Monatsbetrag aus"}</small></span><select data-g="other" data-i="${i}" aria-label="${esc(o.l)} übernehmen als"><option value="plus"${o.act==="plus"?" selected":""}>Jeden Monat als festes Brutto übernehmen</option><option value="skip"${o.act==="skip"?" selected":""}>Nur merken, nicht übernehmen</option></select></div>`).join("")+`</div>`;
-  if(R.ded.length)h+=`<div class="sec">Abzüge</div><div class="found">`+R.ded.map((d,i)=>`<div class="fi"><span></span><span><b>${esc(d.l)}: −${eur(d.a)}</b></span><select data-g="ded" data-i="${i}" aria-label="${esc(d.l)} übernehmen als"><option value="skip"${!d.on?" selected":""}>Nicht übernehmen</option><option value="umw"${d.on&&d.t==="umw"?" selected":""}>Gehaltsumwandlung vor Steuer, z. B. Rad</option><option value="netAbz"${d.on&&d.t==="netAbz"?" selected":""}>Abzug vom Netto</option></select></div>`).join("")+`</div>`;
+  if(R.other.length)h+=`<div class="sec">Weitere Zulagen auf deiner Abrechnung</div><div class="found">`+R.other.map((o,i)=>`<div class="fi"><span></span><span><b>${esc(o.l)}: ${eur(o.a)}</b><small>${o.q!=null?`${fmt(o.q)} × ${fmt(o.r)} € · `:""}${o.nightFlat?"Feste Pauschale, kommt mit den Zulagen, wenn du Nachtschichten hattest":o.once?"Sieht nach einer Einmalzahlung aus":o.isVar?"Kam mit der Nachberechnung, also mit den Zulagen aus dem Vormonat. Ändert sich von Monat zu Monat":o.q!=null?"Ändert sich mit deinen Stunden, hier zur Info":"Sieht nach einem festen Monatsbetrag aus"}</small></span><select data-g="other" data-i="${i}" aria-label="${esc(o.l)} übernehmen als">${o.nightFlat?`<option value="mNight" selected>Als Pauschale bei Nachtarbeit übernehmen</option>`:""}<option value="plus"${o.act==="plus"?" selected":""}>Jeden Monat als festes Brutto übernehmen</option>${(c.items||[]).some(x=>x.n.toLowerCase()===o.l.toLowerCase())?`<option value="remove"${o.act!=="plus"&&!o.nightFlat?" selected":""}>Aus deinen festen Posten entfernen</option>`:""}<option value="skip"${o.act==="skip"&&!(c.items||[]).some(x=>x.n.toLowerCase()===o.l.toLowerCase())?" selected":""}>Nur merken, nicht übernehmen</option></select></div>`).join("")+`</div>`;
+  if(R.ded.length)h+=`<div class="sec">Abzüge</div><div class="found">`+R.ded.map((d,i)=>`<div class="fi"><span></span><span><b>${esc(d.l)}: −${eur(d.a)}</b></span><select data-g="ded" data-i="${i}" aria-label="${esc(d.l)} übernehmen als"><option value="skip"${!d.on?" selected":""}>Nicht übernehmen</option><option value="umw"${d.on&&d.t==="umw"?" selected":""}>Gehaltsumwandlung vor Steuer, z. B. Rad</option><option value="umwSt"${d.on&&d.t==="umwSt"?" selected":""}>Gehaltsumwandlung nur steuerfrei, z. B. PC Leasing</option><option value="umwSt"${d.on&&d.t==="umwSt"?" selected":""}>Gehaltsumwandlung nur steuerfrei, z. B. PC Leasing</option><option value="netAbz"${d.on&&d.t==="netAbz"?" selected":""}>Abzug vom Netto</option></select></div>`).join("")+`</div>`;
   h+=`<p class="note" style="margin:0 2px 12px">Zuschläge stehen oft erst auf der Abrechnung des Folgemonats. Prüf die Werte kurz, bevor du sie übernimmst. Die Zeitfenster für Nacht und Samstag stehen nicht auf der Abrechnung, die prüfst du unter Zuschläge.</p>`;
   $("slRes").innerHTML=h;$("slApply").hidden=false;
   $("slRes").querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>cb.closest(".fi").classList.toggle("off",!cb.checked));
@@ -1495,7 +1535,12 @@ function slipApply(){
   if(nR)c.modified=true;
   c.items=c.items||[];
   const addItem=(n,v,ty)=>{const ex=c.items.find(x=>x.n.toLowerCase()===n.toLowerCase());if(ex){ex.v=v;ex.t=ty}else c.items.push({n,v,t:ty});nI++};
-  R.other.forEach((o,i)=>{if(on("other",i)==="plus")addItem(o.l,Math.round(o.a*100)/100,"plus")});
+  const dropItem=n=>{const k=c.items.length;c.items=c.items.filter(x=>x.n.toLowerCase()!==n.toLowerCase());if(c.items.length<k)nI++};
+  R.other.forEach((o,i)=>{const a=on("other",i);if(a==="plus")addItem(o.l,Math.round(o.a*100)/100,"plus");
+    else if(a==="mNight"){c.rules.mNight=Math.round(o.a*100)/100;c.modified=true;dropItem(o.l);nR++}
+    else if(a==="remove")dropItem(o.l)});
+  if(R.pay&&on("pay",0)){state.actual=state.actual||{};state.actual[R.pay.ym]={total:R.pay.total,sal:R.pay.sal,zu:R.pay.zu,zuMo:R.pay.zuMo};nB++}
+  if(R.abs&&on("abs",0)){c.absRate=R.abs.rate;nB++}
   R.ded.forEach((d,i)=>{const a=on("ded",i);if(a&&a!=="skip")addItem(d.l,Math.round(d.a*100)/100,a)});
   state.cfg=c;save();closeSheet();renderSettings();render();
   toast(`Übernommen: ${nB+nR+nI} Werte`);
