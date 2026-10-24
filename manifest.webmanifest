@@ -1,0 +1,18 @@
+{
+  "name": "Zulo Schicht und Zuschlag",
+  "short_name": "Zulo",
+  "description": "Schichtkalender mit Zuschlägen. Alle Daten bleiben auf deinem Gerät.",
+  "lang": "de-DE",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

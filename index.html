@@ -1,0 +1,1401 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; base-uri 'self'; form-action 'none'">
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Zulo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f7f5f2" media="(prefers-color-scheme: light)">
+<meta name="format-detection" content="telephone=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zulo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+/* Datenschutz: keine externen Schriften oder Skripte. Es werden nur Systemschriften des Geräts genutzt (Android: Roboto, iOS: SF Pro). */
+/* Layout: phone first app shell, sticky header, segmented nav, one column, max 560px */
+:root{
+  --bg:#0b0b0c; --surface:#151517; --surface-2:#1e1e21; --line:#2a2a2e;
+  --fg:#f4f2ef; --muted:#9a948d; --accent:#ff7a12; --on-accent:#1a0d02; --good:#3fbf8a; --bad:#ff6b7d;
+  --f-early:#ffb347; --f-late:#ff7a12; --f-night:#7d8cff; --f-off:#4a4a50; --f-vac:#3fbf8a; --f-sick:#e5566a; --f-dispo:#c9a227;
+  --display:ui-rounded,system-ui,-apple-system,"SF Pro Rounded","Segoe UI",Roboto,"Noto Sans",sans-serif;
+  --body:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",Helvetica,Arial,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#f7f5f2; --surface:#ffffff; --surface-2:#f0ece7; --line:#e3ddd5;
+  --fg:#151312; --muted:#6e6760; --accent:#e06400; --on-accent:#ffffff; --good:#1f8a5c; --bad:#c62d43;
+  --f-off:#b9b3ac; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#f7f5f2; --surface:#ffffff; --surface-2:#f0ece7; --line:#e3ddd5;
+  --fg:#151312; --muted:#6e6760; --accent:#e06400; --on-accent:#ffffff; --good:#1f8a5c; --bad:#c62d43;
+  --f-off:#b9b3ac; color-scheme:light}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior-y:none}
+button,.day,.seg,.unions button,.types button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.wrap{overflow-x:hidden}
+body{font-family:var(--body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(110px + env(safe-area-inset-bottom,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:10px;padding-block:12px 10px}
+header img{width:38px;height:auto;display:block}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.04em}
+.brand small{display:block;white-space:nowrap;font-family:var(--body);font-weight:600;font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.seg{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--surface);border-top:1px solid var(--line);padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.seg button{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;color:var(--muted);font:600 11px var(--body);padding:6px 0;border-radius:12px;cursor:pointer;min-width:0}
+.seg button svg{width:22px;height:22px}
+.seg button[aria-selected="true"]{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.month{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}
+.month h2{font-family:var(--display);font-weight:700;font-size:24px;margin:0}
+.iconbtn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:20px;cursor:pointer;display:grid;place-items:center}
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:4px;margin-bottom:14px}
+.hero .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.hero .big{font-family:var(--display);font-weight:800;font-size:40px;white-space:nowrap;line-height:1.05;font-variant-numeric:tabular-nums}
+.hero .zu{color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+.hero .sub{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.hero .tf{color:var(--muted);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.hero .zuline{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;margin-top:6px}
+.tarifchip{grid-column:1/-1;margin-top:8px;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.tarifchip b{color:var(--fg);font-weight:600}
+.tarifchip button{margin-left:auto;border:0;background:none;color:var(--accent);font:700 12px var(--body);cursor:pointer}
+.dow,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dow div{font-size:11px;text-align:center;color:var(--muted);font-weight:600;letter-spacing:.06em;padding-bottom:4px}
+.day{position:relative;aspect-ratio:1/1.18;max-width:100%;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--fg);padding:5px 4px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;min-width:0}
+.day.out{visibility:hidden}
+.day .n{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.day.sun .n,.day.hol .n{color:var(--accent)}
+.day.today{border-color:var(--accent)}
+.day .chip{margin-top:auto;width:100%;border-radius:7px;font:700 12px var(--display);padding:3px 0;text-align:center;color:#111}
+.day .h{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1}
+.day .dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin:12px 0 0;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.note{font-size:12px;color:var(--muted);margin:10px 2px 0}
+.note a{color:var(--accent)}
+.banner{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface-2);border:1px dashed var(--line);border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.banner button{border:0;background:none;color:var(--accent);font:700 13px var(--body);cursor:pointer;white-space:nowrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 14px;margin-bottom:14px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.row:last-child{border-bottom:0}
+.row .k{color:var(--muted);min-width:0}
+.row .v{font-weight:600;text-align:right}
+.row.total .k,.row.total .v{color:var(--fg);font-family:var(--display);font-weight:800;font-size:19px}
+.row.good .v{color:var(--good)}
+.paycard{margin-bottom:14px}
+.item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item input[type=text]{width:100%;min-width:0}
+.item select{grid-column:1/-1;width:100%}
+.item .linkbtn{grid-column:1/-1;justify-self:start}
+.row.sub{border-bottom:2px solid var(--line)}.row.sub .k,.row.sub .v{color:var(--fg);font-weight:700}
+.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:18px 2px 8px}
+.bar{height:10px;border-radius:6px;background:var(--surface-2);overflow:hidden;display:flex;margin:12px 0 4px}
+.bar span{display:block;height:100%}
+.f{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.f:last-child{border-bottom:0}
+.f>span:first-child{min-width:0;flex:1 1 140px}
+.f small{display:block;color:var(--muted);font-size:12px}
+.inp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+input,select,textarea{font:600 16px var(--body);color:var(--fg);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-variant-numeric:tabular-nums;max-width:100%}
+input[data-num]{width:86px;text-align:right}
+input[type=time]{width:108px}
+select{padding-right:6px}
+select.wide{width:100%}
+textarea{width:100%;min-height:90px;font:500 16px ui-monospace,monospace;resize:vertical}
+.unit{color:var(--muted);font-size:13px}
+.tarifbox{padding:12px 0}
+.tarifbox p{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.tarifbox .stand{font-size:12px}
+.tarifbox a{color:var(--accent);font-weight:600}
+.mod{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px}
+.linkbtn{border:0;background:none;color:var(--accent);font:700 13px var(--body);cursor:pointer;padding:0}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0}
+.scrim{position:fixed;inset:0;background:rgb(0 0 0/.55);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding-top:10px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-height:92%;overflow:auto}
+.sheet .in{max-width:560px;margin:0 auto}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+.sheet h3{font-family:var(--display);font-size:21px;margin:0 0 2px;text-wrap:balance}
+.sheet .meta{color:var(--muted);font-size:13px;margin-bottom:12px}
+.types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.types button{border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:12px;padding:10px 6px;font:600 14px var(--body);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.types button i{width:10px;height:10px;border-radius:3px}
+.types button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface-2))}
+.times{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.times label{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}
+.times input{width:100%;text-align:left}
+.tfield{position:relative;display:inline-flex;align-items:center}
+.tfield input{width:96px;padding-right:38px;font-size:16px;text-align:left}
+.times .tfield{display:flex;width:100%}.times .tfield input{width:100%}
+.tfield input.bad{border-color:var(--bad)}
+.clk{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--muted);overflow:hidden}
+.clk svg{width:18px;height:18px;pointer-events:none}
+.clk input[type=time]{position:absolute;inset:0;width:100%;height:100%;opacity:0;padding:0;border:0;cursor:pointer;font-size:16px}
+.err{color:var(--bad);font-size:13px;font-weight:600;margin:0 0 10px}
+.preview{background:var(--surface-2);border-radius:12px;padding:4px 12px;margin:4px 0 14px}
+.preview .row{padding:7px 0;font-size:14px}
+.actions{display:flex;gap:8px}
+.btn{flex:1;border:0;border-radius:12px;padding:13px;font:700 15px var(--body);cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+.btn.sec2{background:var(--surface-2);color:var(--fg);border:1px solid var(--line)}
+.btn.del{flex:0 0 auto;background:none;color:var(--bad);border:1px solid var(--line)}
+.btn.small{flex:0 0 auto;padding:9px 14px;font-size:14px}
+.tlist{display:grid;gap:8px;margin:4px 0 14px}
+.tlist button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:12px;padding:11px 12px;cursor:pointer;font:600 15px var(--body)}
+.tlist button small{font:500 12px var(--body);color:var(--muted)}
+.tlist button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface-2))}
+.ob label{display:grid;gap:6px;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:12px}
+.ob input{width:100%;text-align:left}
+.unions{display:flex;gap:6px;margin:0 -16px 14px;padding:0 16px 2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.unions::-webkit-scrollbar{display:none}
+.unions button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:7px 12px;font:600 13px var(--body);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.unions button i{width:8px;height:8px;border-radius:50%}
+.unions button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
+/* News: Top Meldung mit Bild, Filter, Liste mit Vorschaubild. Bilder sind eigene Zeichnungen (SVG), nichts wird von fremden Servern geladen. */
+.art{position:absolute;inset:0;background:var(--surface-2)}
+.art svg{display:block;width:100%;height:100%}
+.nhero{position:relative;aspect-ratio:4/3.3;max-height:420px;width:100%;border-radius:24px;overflow:hidden;cursor:pointer;margin-bottom:16px;isolation:isolate;box-shadow:0 10px 30px -12px rgb(0 0 0/.55)}
+.nhero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(0 0 0/0) 30%,rgb(8 8 10/.55) 58%,rgb(8 8 10/.92));z-index:1;pointer-events:none}
+.nhbody{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:18px;display:grid;gap:8px;color:#f6f3ef}
+.nhbody .kind{justify-self:start}
+.nhbody h3{margin:0;font:800 21px/1.22 var(--display);text-wrap:balance;letter-spacing:-.005em}
+.nhbody .nsrc{color:rgb(246 243 239/.78)}
+.nhbody .nsrc .dt{margin-left:auto}
+.kind{display:inline-block;font:700 11px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgb(255 255 255/.16);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.kind.Streik{background:var(--bad);color:#fff}
+.kind.Ergebnis{background:var(--good);color:#fff}
+.kind.Termin,.kind.Verhandlung{background:var(--accent);color:var(--on-accent)}
+.nsrc{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;min-width:0;color:var(--muted)}
+.nsrc i{flex:0 0 auto;min-width:20px;padding:0 4px;height:20px;border-radius:6px;display:grid;place-items:center;font:800 8px var(--display);color:#fff;font-style:normal;letter-spacing:0}
+.nsrc span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nsave{position:absolute;top:12px;right:12px;z-index:3;width:40px;height:40px;border-radius:12px;border:0;display:grid;place-items:center;cursor:pointer;background:rgb(12 12 14/.45);color:#fff;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.nsave svg{width:18px;height:18px}
+.nsave[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.nsave[aria-pressed="true"] svg path{fill:currentColor}
+.ntabs{display:flex;gap:6px;margin:0 -16px 12px;padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.ntabs::-webkit-scrollbar{display:none}
+.ntabs button{flex:0 0 auto;border:0;background:none;color:var(--muted);border-radius:999px;padding:8px 14px;font:700 13px var(--body);cursor:pointer;white-space:nowrap}
+.ntabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.ntabs button small{font:700 11px var(--body);opacity:.75;margin-left:4px}
+.feed{display:grid;gap:10px}
+.nitem{position:relative;display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:10px;cursor:pointer;min-width:0}
+.nitem .thumb{position:relative;width:88px;height:88px;border-radius:13px;overflow:hidden}
+.nitem .nb{display:grid;gap:5px;min-width:0;padding-right:30px}
+.nmeta{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted);font-weight:600;min-width:0}
+.nmeta .k{text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--fg)}
+.nmeta .k.Streik{color:var(--bad)}.nmeta .k.Ergebnis{color:var(--good)}.nmeta .k.Termin,.nmeta .k.Verhandlung{color:var(--accent)}
+.nitem h4{margin:0;font:700 15px/1.3 var(--display);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nitem .nsave{top:8px;right:8px;width:32px;height:32px;border-radius:10px;background:none;color:var(--muted);backdrop-filter:none;-webkit-backdrop-filter:none}
+.nitem .nsave[aria-pressed="true"]{background:none;color:var(--accent)}
+.nhero:focus-visible,.nitem:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (hover:hover){.nitem:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}}
+#newsSheet .nart{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;margin:2px 0 14px}
+#newsSheet .nsrc{margin:0 0 8px}
+#newsSheet .nsrc .dt{margin-left:auto}
+#newsSheet h3{margin:8px 0 8px;font-size:22px;line-height:1.22}
+#newsSheet .sum{margin:0 0 10px;font-size:16px;line-height:1.55}
+#newsSheet .cap{margin:0 0 14px;font-size:12px;color:var(--muted)}
+#newsSheet .actions a{text-decoration:none;text-align:center}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:18px;color:var(--muted);font-size:14px;text-align:center}
+.shhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.shhead .btn{flex:0 0 auto}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 10px}
+.quick button{border:1px dashed var(--line);background:none;color:var(--muted);border-radius:999px;padding:6px 10px;font:600 12px var(--body);cursor:pointer;font-variant-numeric:tabular-nums}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;z-index:30;white-space:nowrap}
+.iconbtn{width:44px;height:44px}
+.slip{border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 7%,var(--surface));border-radius:16px;padding:14px;margin-bottom:14px}
+.slip h4{margin:0 0 4px;font:700 17px var(--display)}
+.slip p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.slip .btnrow{padding:0}
+.lock{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--muted);margin-top:10px}
+.lock svg{flex:0 0 16px;width:16px;height:16px;color:var(--good);margin-top:1px}
+.found{display:grid;gap:8px;margin:6px 0 14px}
+.fi{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.fi input[type=checkbox]{width:22px;height:22px;margin:1px 0 0;accent-color:var(--accent)}
+.fi b{font-weight:700;font-size:14px}
+.fi small{display:block;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.fi select{grid-column:2;width:100%;font-size:14px;padding:6px 8px}
+.fi.off{opacity:.6}
+.dp{margin:0;padding:6px 0 10px 18px;font-size:13px;color:var(--fg)}
+.dp li{margin:6px 0}
+.dp li small{display:block;color:var(--muted);font-size:12px}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.pw{display:grid;gap:6px;margin:0 0 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.pw input{width:100%}
+#slipSheet .actions{position:sticky;bottom:calc(-16px - env(safe-area-inset-bottom,0px));background:var(--surface);padding:10px 0 calc(6px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="data:image/png;base64,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" alt="Zulo Logo">
+    <div class="brand">ZULO<small>Schicht + Zuschlag</small></div>
+  </header>
+
+  <div class="month" id="monthbar">
+    <button class="iconbtn" id="prev" aria-label="Vorheriger Monat">‹</button>
+    <h2 id="mtitle"></h2>
+    <button class="iconbtn" id="next" aria-label="Nächster Monat">›</button>
+  </div>
+
+  <section id="v-cal">
+    <div class="banner" id="demo" hidden><span>Das sind Beispielschichten. Tippe auf einen Tag, um deine eigene einzutragen.</span><button id="clearDemo">Beispiele löschen</button></div>
+    <div class="hero">
+      <div class="lbl" id="hLbl">Netto aufs Konto</div><div class="big" id="hNetto">0 €</div><div class="sub" id="hBrutto"></div>
+      <div class="zuline"><span class="zu" id="hZu"></span><span class="tf" id="hTf"></span></div>
+      <div class="sub" id="hSub"></div>
+      <div class="tarifchip"><span>Tarif: <b id="hTarif"></b></span><button id="hTarifBtn">Ändern</button></div>
+    </div>
+    <div class="card paycard" id="payCard"></div>
+    <div class="dow"><div>MO</div><div>DI</div><div>MI</div><div>DO</div><div>FR</div><div>SA</div><div>SO</div></div>
+    <div class="grid" id="grid"></div>
+    <div class="legend" id="legend"></div>
+    <p class="note" id="calNote"></p>
+  </section>
+
+  <section id="v-sum" hidden>
+    <div class="sec">Verdienst</div>
+    <div class="card" id="sMoney"></div>
+    <div class="sec">Aufs Konto</div>
+    <div class="card" id="sPay"></div>
+    <div class="sec">Stunden</div>
+    <div class="card" id="sHours"></div>
+    <div class="sec">Tage</div>
+    <div class="card" id="sShifts"></div>
+    <p class="note">Netto ist eine Schätzung nach dem amtlichen Lohnsteuer Ablaufplan 2026 und den Sozialversicherungswerten 2026. Firmenrad, Leasing und andere Posten trägst du unter Lohn ein. Der steuerfreie Anteil ist eine Schätzung nach § 3b EStG; maßgeblich ist deine Lohnabrechnung.</p>
+  </section>
+
+  <section id="v-news" hidden>
+    <div class="sec" style="margin-top:4px">Deine Gewerkschaften</div>
+    <div class="unions" id="unions" role="group" aria-label="Gewerkschaften auswählen"></div>
+    <div id="nhero"></div>
+    <div class="ntabs" id="ntabs" role="group" aria-label="Meldungen filtern"></div>
+    <div id="feed" class="feed" aria-live="polite"></div>
+    <p class="note" id="feedNote">Meldungen in eigenen Worten zusammengefasst, das Original öffnet sich über den Link. Zulo aktualisiert die News jeden Morgen.</p>
+  </section>
+
+  <section id="v-set" hidden>
+    <div class="slip" id="slipCard">
+      <h4>Lohnabrechnung auslesen</h4>
+      <p>Zulo findet deine Zulagen und Zuschläge mit Stunden und Sätzen, auch firmeninterne, und rechnet ab dann damit.</p>
+      <div class="btnrow"><button type="button" class="btn pri small" id="slipPick">PDF auswählen</button><button type="button" class="btn sec2 small" id="slipPaste">Text einfügen</button></div>
+      <input type="file" id="slipFile" accept="application/pdf,.pdf" tabindex="-1" aria-hidden="true">
+      <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Die Abrechnung wird nur auf diesem Gerät gelesen. Sie wird nicht hochgeladen, nicht gespeichert und danach sofort verworfen. Übernommen werden nur die Werte, die du anhakst. Name, Personalnummer und Bankdaten liest Zulo nicht aus.</span></div>
+    </div>
+    <div class="sec">Dein Tarif</div>
+    <div class="card">
+      <div class="tarifbox">
+        <select id="sTarif" class="wide" aria-label="Tarif"></select>
+        <p id="sTarifHint"></p>
+        <p class="stand" id="sTarifStand"></p>
+      </div>
+    </div>
+    <div class="sec">Grunddaten</div>
+    <div class="card">
+      <label class="f" for="payMode"><span>Bezahlung<small>Steht im Arbeitsvertrag und auf der Abrechnung</small></span><span class="inp"><select id="payMode"><option value="month">Monatsgehalt</option><option value="hour">Stundenlohn</option></select></span></label>
+      <div id="pmMonth">
+        <label class="f" for="monthly"><span>Monatsgehalt brutto<small>Tabellenentgelt ohne Zuschläge</small></span><span class="inp"><input id="monthly" type="text" data-num="1" step="0.01" min="0" inputmode="decimal"><span class="unit">€</span></span></label>
+        <label class="f" for="hours"><span>Wochenstunden<small>Laut Vertrag</small></span><span class="inp"><input id="hours" type="text" data-num="1" step="0.5" min="1" inputmode="decimal"><span class="unit">Std</span></span></label>
+        <label class="f" for="zuRateIn"><span>Stundensatz für Zuschläge<small id="zuRateHint"></small></span><span class="inp"><input id="zuRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="automatisch"><span class="unit">€</span></span></label>
+      </div>
+      <label class="f" for="wage" id="pmHour"><span>Stundenlohn<small>Brutto pro Stunde</small></span><span class="inp"><input id="wage" type="text" data-num="1" step="0.01" min="0" inputmode="decimal"><span class="unit">€</span></span></label>
+      <label class="f" for="land"><span>Bundesland<small>Für die Feiertage am Arbeitsort</small></span><span class="inp"><select id="land"></select></span></label>
+    </div>
+    <div class="sec">Weitere Posten auf deiner Abrechnung</div>
+    <div class="card"><div id="itemsList"></div>
+      <div class="btnrow"><button type="button" class="btn sec2 small" id="addItem">+ Posten hinzufügen</button></div>
+    </div>
+    <p class="note" style="margin-top:-6px;margin-bottom:8px">Zum Beispiel Firmenrad, PC Leasing, vermögenswirksame Leistungen oder Kantine. Betrag pro Monat, so wie er auf der Abrechnung steht.</p>
+    <div class="sec">Netto</div>
+    <div class="card">
+      <label class="f" for="tStkl"><span>Steuerklasse<small>Steht auf der Abrechnung</small></span><span class="inp"><select id="tStkl"><option value="1">I</option><option value="2">II</option><option value="3">III</option><option value="4">IV</option><option value="5">V</option><option value="6">VI</option></select></span></label>
+      <label class="f" for="tKinder"><span>Kinderfreibeträge<small>Laut Abrechnung, z. B. 0,5 oder 1,0</small></span><span class="inp"><input id="tKinder" type="text" data-num="1" min="0" step="0.5" inputmode="decimal"></span></label>
+      <label class="f" for="tKirche"><span>Kirchensteuer<small>8 % in BW und Bayern, sonst 9 %</small></span><span class="inp"><select id="tKirche"><option value="0">nein</option><option value="1">ja</option></select></span></label>
+      <label class="f" for="tKvz"><span>Zusatzbeitrag Krankenkasse<small>Durchschnitt 2026: 2,9 %</small></span><span class="inp"><input id="tKvz" type="text" data-num="1" min="0" step="0.01" inputmode="decimal"><span class="unit">%</span></span></label>
+      <label class="f" for="tPvK"><span>Kinder unter 25<small>Senkt den Pflegebeitrag ab dem 2. Kind</small></span><span class="inp"><input id="tPvK" type="text" data-num="1" min="0" step="1" inputmode="numeric"></span></label>
+      <label class="f" for="tKl"><span>Kinderlos und mindestens 23<small>Zuschlag zur Pflegeversicherung</small></span><span class="inp"><select id="tKl"><option value="1">ja</option><option value="0">nein</option></select></span></label>
+    </div>
+    <div class="sec">Zuschläge <span id="modTag"></span></div>
+    <div class="card" id="rules"></div>
+    <div class="sec">Schichtvorlagen</div>
+    <div class="card" id="tpl"></div>
+    <div class="sec">Datensicherung</div>
+    <div class="card">
+      <div class="f" id="fileBackup"><span>Sicherung als Datei<small>Speichert eine Datei in deinen Downloads. Am sichersten für den Wechsel auf ein neues Handy.</small></span><span class="inp"><button class="btn sec2 small" id="bExportFile">Speichern</button><button class="btn sec2 small" id="bImportFile">Laden</button></span><input type="file" id="backupFile" accept="application/json,.json,.txt" tabindex="-1" aria-hidden="true"></div>
+      <div class="f"><span>Sicherung kopieren<small>Alle Schichten und Einstellungen als Text. Achtung: Andere Apps können die Zwischenablage mitlesen. Füg den Text nur in einer vertrauenswürdigen App ein.</small></span><button class="btn sec2 small" id="bExport">Kopieren</button></div>
+      <div class="f" style="display:grid"><span>Sicherung einspielen<small>Text einfügen. Eine volle Sicherung ersetzt alles, ein importierter Schichtplan wird in den Kalender übernommen.</small></span><textarea id="importTxt" aria-label="Sicherung einfügen" placeholder="Sicherung hier einfügen"></textarea><button class="btn sec2 small" id="bImport">Wiederherstellen</button></div>
+      <div class="f"><span>Alles zurücksetzen<small>Löscht alle Schichten auf diesem Gerät</small></span><button class="btn del small" id="bReset">Zurücksetzen</button></div>
+      <div class="f" id="resetConfirm" hidden><span>Wirklich alles löschen?</span><span class="inp"><button class="btn sec2 small" id="bResetNo">Abbrechen</button><button class="btn del small" id="bResetYes">Ja, löschen</button></span></div>
+    </div>
+    <div class="sec">Datenschutz</div>
+    <div class="card">
+      <ul class="dp">
+        <li>Kein Konto, keine Anmeldung, kein Tracking<small>Zulo braucht weder Name noch E Mail noch Personalnummer.</small></li>
+        <li>Alles bleibt auf deinem Handy<small>Schichten, Gehalt und Steuerdaten liegen nur im Speicher dieses Geräts. Es gibt keinen Server, der sie empfängt. Auch dein Arbeitgeber sieht nichts.</small></li>
+        <li>Lohnabrechnung nur lokal gelesen<small>Die Datei wird im Arbeitsspeicher ausgewertet und danach verworfen. Nur die Werte, die du bestätigst, werden gespeichert.</small></li>
+        <li>Keine fremden Dienste<small>Keine Werbung, keine Analyse, keine externen Schriften. Für die News werden nur öffentliche Meldungen geladen, dabei werden keine deiner Zulo Daten mitgeschickt.</small></li>
+        <li>Löschen jederzeit<small>Zurücksetzen löscht alle Zulo Daten auf diesem Gerät sofort und vollständig.</small></li>
+      </ul>
+    </div>
+    <p class="note">Zulo speichert nur auf diesem Gerät. Tarifwerte sind mit Quelle und Stand hinterlegt und können sich mit neuen Abschlüssen ändern. Prüf sie einmal mit deiner Lohnabrechnung.</p>
+  </section>
+</div>
+
+<nav class="seg" role="tablist" aria-label="Ansicht">
+  <button id="tab-cal" role="tab" aria-selected="true" data-view="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Kalender</button>
+  <button id="tab-sum" role="tab" aria-selected="false" data-view="sum"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Monat</button>
+  <button id="tab-news" role="tab" aria-selected="false" data-view="news"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h10M7 17h6"/></svg>News</button>
+  <button id="tab-set" role="tab" aria-selected="false" data-view="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5a3 3 0 1 0 0 5M8 11h5M8 13.5h5"/></svg>Lohn</button>
+</nav>
+<div class="scrim" id="scrim" hidden></div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle" hidden>
+  <div class="in">
+    <div class="grab"></div>
+    <div class="shhead"><h3 id="shTitle"></h3><button type="button" class="btn pri small" id="bSaveTop">Fertig</button></div>
+    <div class="meta" id="shMeta"></div>
+    <div class="types" id="types"></div>
+    <div class="quick" id="quick"></div>
+    <div class="times" id="times">
+      <label for="tStart">Beginn<input id="tStart" type="time"></label>
+      <label for="tEnd">Ende<input id="tEnd" type="time"></label>
+      <label for="tBreak">Pause min<input id="tBreak" type="text" data-num="1" min="0" step="5" inputmode="numeric" enterkeyhint="done"></label>
+    </div>
+    <p class="err" id="shErr" hidden></p>
+    <div class="preview" id="pv"></div>
+    <div class="actions">
+      <button class="btn del" id="bDel">Löschen</button>
+      <button class="btn sec2" id="bCancel">Abbrechen</button>
+      <button class="btn pri" id="bSave">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet ob" id="onboard" role="dialog" aria-modal="true" aria-labelledby="obTitle" hidden>
+  <div class="in">
+    <div class="grab"></div>
+    <h3 id="obTitle">Willkommen bei Zulo</h3>
+    <div class="meta">Ein paar Angaben, dann rechnet Zulo deine Zuschläge automatisch.</div>
+    <div class="sec" style="margin-top:6px">1. Nach welchem Tarif wirst du bezahlt?</div>
+    <div class="tlist" id="obTarif"></div>
+    <div class="sec">2. Grunddaten</div>
+    <div class="types" style="grid-template-columns:1fr 1fr" id="obMode"><button type="button" data-m="month" aria-pressed="true">Monatsgehalt</button><button type="button" data-m="hour" aria-pressed="false">Stundenlohn</button></div>
+    <div id="obMonth">
+      <label for="obMonthly">Monatsgehalt brutto in € (ohne Zuschläge)<input id="obMonthly" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="z. B. 3400"></label>
+      <label for="obHours">Wochenstunden laut Vertrag<input id="obHours" type="text" data-num="1" step="0.5" min="1" inputmode="decimal" placeholder="z. B. 39"></label>
+    </div>
+    <label for="obWage" id="obHourL" hidden>Stundenlohn brutto in €<input id="obWage" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="z. B. 21,50"></label>
+    <label for="obLand">Bundesland deines Arbeitsorts<select id="obLand" class="wide"></select></label>
+    <label for="obStkl">Steuerklasse (für das Netto)<select id="obStkl" class="wide"><option value="1">I</option><option value="2">II</option><option value="3">III</option><option value="4">IV</option><option value="5">V</option><option value="6">VI</option></select></label>
+    <p class="err" id="obErr" hidden></p>
+    <div class="actions"><button class="btn pri" id="obGo">Los geht's</button></div>
+    <p class="note">Du weißt deinen Tarif nicht? Er steht meist im Arbeitsvertrag. Wähl sonst „Kein Tarif“, das kannst du jederzeit ändern.</p>
+  </div>
+</div>
+
+<div class="sheet" id="slipSheet" role="dialog" aria-modal="true" aria-labelledby="slTitle" hidden>
+  <div class="in">
+    <div class="grab"></div>
+    <h3 id="slTitle">Lohnabrechnung auslesen</h3>
+    <div class="meta" id="slMeta"></div>
+    <div id="slPaste" hidden>
+      <label class="pw" for="slText">Öffne die Abrechnung, markiere alles, kopiere es und füg es hier ein.<textarea id="slText" placeholder="Text der Abrechnung"></textarea></label>
+      <div class="actions" style="margin-bottom:12px"><button class="btn pri" id="slTextGo">Auslesen</button></div>
+    </div>
+    <div id="slPw" hidden>
+      <label class="pw" for="slPwIn">Die PDF ist mit einem Passwort geschützt. Das Passwort wird nur zum Öffnen genutzt und nicht gespeichert.<input id="slPwIn" type="password" autocomplete="off"></label>
+      <div class="actions" style="margin-bottom:12px"><button class="btn pri" id="slPwGo">Öffnen</button></div>
+    </div>
+    <p class="err" id="slErr" hidden></p>
+    <div id="slRes"></div>
+    <div class="actions"><button class="btn sec2" id="slCancel">Abbrechen</button><button class="btn pri" id="slApply" hidden>Übernehmen</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="newsSheet" role="dialog" aria-modal="true" aria-labelledby="nsTitle" hidden>
+  <div class="in">
+    <div class="grab"></div>
+    <div class="nart" id="nsArt"></div>
+    <span class="kind" id="nsKind"></span>
+    <h3 id="nsTitle"></h3>
+    <div class="nsrc" id="nsSrc"></div>
+    <p class="sum" id="nsSum"></p>
+    <p class="cap" id="nsCap"></p>
+    <div class="actions"><button type="button" class="btn sec2" id="nsSave">Merken</button><a class="btn pri" id="nsLink" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Original lesen</a></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ZULO ENGINE START */
+const LAENDER={BW:"Baden-Württemberg",BY:"Bayern",BE:"Berlin",BB:"Brandenburg",HB:"Bremen",HH:"Hamburg",HE:"Hessen",MV:"Mecklenburg-Vorpommern",NI:"Niedersachsen",NW:"Nordrhein-Westfalen",RP:"Rheinland-Pfalz",SL:"Saarland",SN:"Sachsen",ST:"Sachsen-Anhalt",SH:"Schleswig-Holstein",TH:"Thüringen"};
+const pad=n=>String(n).padStart(2,"0");
+/* Zahl aus deutscher oder englischer Eingabe: "3.400,50", "3400,5", "2.9", "0,5" (Android und iOS Tastaturen liefern oft ein Komma) */
+const N=v=>{let t=String(v??"").trim().replace(/[\s€%]/g,"");if(!t)return NaN;
+  if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if(/^-?\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,"");
+  return parseFloat(t)};
+const dk=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+const keyOf=dt=>dk(dt.getFullYear(),dt.getMonth(),dt.getDate());
+function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,mm=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*mm+114)/31),da=((h+l-7*mm+114)%31)+1;return new Date(y,mo-1,da)}
+const _hol={};
+function holidays(y,land){
+  const ck=y+land;if(_hol[ck])return _hol[ck];
+  const o={},E=easter(y),off=n=>new Date(y,E.getMonth(),E.getDate()+n);
+  const add=(dt,n,ls)=>{if(!ls||ls.includes(land))o[keyOf(dt)]=n};
+  add(new Date(y,0,1),"Neujahr");
+  add(new Date(y,0,6),"Heilige Drei Könige",["BW","BY","ST"]);
+  if(y>=2019)add(new Date(y,2,8),"Frauentag",y>=2023?["BE","MV"]:["BE"]);
+  add(off(-2),"Karfreitag");
+  add(off(0),"Ostersonntag",["BB"]);
+  add(off(1),"Ostermontag");
+  add(new Date(y,4,1),"Tag der Arbeit");
+  add(off(39),"Christi Himmelfahrt");
+  add(off(49),"Pfingstsonntag",["BB"]);
+  add(off(50),"Pfingstmontag");
+  add(off(60),"Fronleichnam",["BW","BY","HE","NW","RP","SL"]);
+  add(new Date(y,7,15),"Mariä Himmelfahrt",["SL"]);
+  if(y>=2019)add(new Date(y,8,20),"Weltkindertag",["TH"]);
+  add(new Date(y,9,3),"Tag der Deutschen Einheit");
+  add(new Date(y,9,31),"Reformationstag",["BB","HB","HH","MV","NI","SN","ST","SH","TH"]);
+  add(new Date(y,10,1),"Allerheiligen",["BW","BY","NW","RP","SL"]);
+  {const d=new Date(y,10,22);while(d.getDay()!==3)d.setDate(d.getDate()-1);add(d,"Buß und Bettag",["SN"])}
+  add(new Date(y,11,25),"1. Weihnachtstag");
+  add(new Date(y,11,26),"2. Weihnachtstag");
+  return _hol[ck]=o;
+}
+const holName=(dt,land)=>holidays(dt.getFullYear(),land)[keyOf(dt)];
+function isEasterOrPentecostSunday(dt){const E=easter(dt.getFullYear());const k=keyOf(dt);return k===keyOf(E)||k===keyOf(new Date(E.getFullYear(),E.getMonth(),E.getDate()+49))}
+function isHighHoliday(dt){/* 1.1, 1.5, Ostern, Pfingsten, 25./26.12 */
+  const m=dt.getMonth(),d=dt.getDate();
+  if((m===0&&d===1)||(m===4&&d===1)||(m===11&&(d===25||d===26)))return true;
+  const E=easter(dt.getFullYear()),diff=Math.round((dt-new Date(E.getFullYear(),E.getMonth(),E.getDate()))/864e5);
+  return diff===0||diff===1||diff===49||diff===50;
+}
+const toMin=t=>{if(!t)return null;const[h,m]=t.split(":").map(Number);return isNaN(h)?null:h*60+(m||0)};
+const inWin=(tod,f,t)=>{const a=toMin(f),b=toMin(t);if(a==null||b==null||a===b)return false;return a<b?(tod>=a&&tod<b):(tod>=a||tod<b)};
+
+/* Tarifvorlagen: unit "pct" = Prozent vom Stundenlohn, "eur" = Euro je Stunde */
+const PRESETS={
+  gesetz:{name:"Kein Tarif (gesetzliche Basis)",stand:"BAG Rechtsprechung, ArbZG",src:"https://www.lto.de/recht/nachrichten/n/bag-urteil-10-azr-423-14-dauerhafte-nachtarbeit-zuschlag-30-prozent",
+    hint:"Gesetzlich gibt es nur einen Nachtzuschlag. Sonntag und Feiertag nur, wenn dein Vertrag es regelt.",
+    rules:{night:{v:25,u:"pct",from:"23:00",to:"06:00"},sat:{v:0,u:"pct",from:"00:00",to:"00:00"},sun:{v:0,u:"pct"},hol:{v:0,u:"pct",eastPent:false},eve:{v:0,u:"pct",from:"14:00",d31:true},high:{v:0,u:"pct"},combine:"highest",endEarly:0,startEarly:0,mNight:0,mShift:0,delay:1}},
+  tvoed:{name:"TVöD (Bund und Kommunen)",stand:"§ 8 TVöD, Abschluss 2025, läuft bis 31.03.2027",src:"https://www.kommunalforum.de/tvoed_sonderformen_der_arbeit.php",
+    hint:"Feiertag 135 % gilt ohne Freizeitausgleich. Steht der Ausgleich im Dienstplan, sind es 35 %.",
+    rules:{night:{v:20,u:"pct",from:"21:00",to:"06:00"},sat:{v:20,u:"pct",from:"13:00",to:"21:00"},sun:{v:25,u:"pct"},hol:{v:135,u:"pct",eastPent:false},eve:{v:35,u:"pct",from:"06:00",d31:true},high:{v:0,u:"pct"},combine:"highest",endEarly:0,startEarly:0,mNight:0,mShift:0,delay:2}},
+  tvl:{name:"TV-L (Länder)",stand:"§ 8 TV-L, Abschluss 14.02.2026, läuft bis 31.01.2028",src:"https://www.haufe.de/id/norm/tv-l-8-ausgleich-fuer-sonderformen-der-arbeit-HI1605689_p8.html",
+    hint:"Feiertag 135 % gilt ohne Freizeitausgleich, mit Ausgleich 35 %. Nicht in Hessen.",
+    rules:{night:{v:20,u:"pct",from:"21:00",to:"06:00"},sat:{v:20,u:"pct",from:"13:00",to:"21:00"},sun:{v:25,u:"pct"},hol:{v:135,u:"pct",eastPent:false},eve:{v:35,u:"pct",from:"06:00",d31:true},high:{v:0,u:"pct"},combine:"highest",endEarly:0,startEarly:0,mNight:0,mShift:0,delay:2}},
+  dbevg:{name:"Deutsche Bahn mit EVG",stand:"Werte ab 01.07.2026 laut FGr 6 TV (Verwaltung). Für Zugpersonal bitte prüfen.",src:"https://lsjv.rlp.de/fileadmin/lsjv/Themen/Arbeit/LTTG/Tarifvertraege_SPNV/2.8_FGr_6-TV_2025_nbf.pdf",
+    hint:"Beträge in Euro je Stunde. Pro Schicht kommt ein Zuschlag dazu, wenn sie zwischen 0 und 4 Uhr endet oder beginnt. Die Schichtzulage von 30 € trägst du unter Weitere Posten als zusätzliches Brutto ein.",
+    rules:{night:{v:3.82,u:"eur",from:"20:00",to:"06:00"},sat:{v:0.64,u:"eur",from:"13:00",to:"20:00"},sun:{v:6.47,u:"eur"},hol:{v:7.07,u:"eur",eastPent:true},eve:{v:0,u:"pct",from:"12:00",d31:true},high:{v:0,u:"pct"},combine:"highest",endEarly:4.07,startEarly:8.14,mNight:0,mShift:0,delay:1,zuBreak:false,roundMonth:true}},
+  dbgdl:{name:"Deutsche Bahn mit GDL",stand:"Werte ab 01.08.2026 laut GDL Tarifabschluss 2026. Nachtzeitfenster bitte prüfen.",src:"https://www.gdl.de/ueber-uns/tarif/tarifabschluss-2026/",
+    hint:"Beträge in Euro je Stunde. Dunkle Nacht: Zuschlag je Schicht bei Ende oder Beginn zwischen 0 und 4 Uhr.",
+    rules:{night:{v:3.88,u:"eur",from:"20:00",to:"06:00"},sat:{v:0,u:"eur",from:"13:00",to:"20:00"},sun:{v:6.58,u:"eur"},hol:{v:7.19,u:"eur",eastPent:true},eve:{v:0,u:"pct",from:"12:00",d31:true},high:{v:0,u:"pct"},combine:"highest",endEarly:4.13,startEarly:8.27,mNight:0,mShift:0,delay:1,zuBreak:false,roundMonth:true}},
+  chemie:{name:"Chemie (BAVC, IGBCE)",stand:"Manteltarifvertrag Chemie West, Fassung 2009. Aktualität bitte prüfen.",src:"https://www.boeckler.de/pdf/ta_tv_Chemie_West_AN_MTV_1992_idF_2009.pdf",
+    hint:"Regelmäßige Nachtarbeit 15 %, unregelmäßige 20 %. Hohe Feiertage (Neujahr, 1. Mai, Ostern, Pfingsten, Weihnachten) 150 %.",
+    rules:{night:{v:15,u:"pct",from:"22:00",to:"06:00"},sat:{v:0,u:"pct",from:"00:00",to:"00:00"},sun:{v:60,u:"pct"},hol:{v:60,u:"pct",eastPent:false},eve:{v:100,u:"pct",from:"13:00",d31:false},high:{v:150,u:"pct"},combine:"highest",endEarly:0,startEarly:0,mNight:0,mShift:0,delay:1}},
+  eigen:{name:"Eigene Werte",stand:"Von dir eingetragen",src:"",
+    hint:"Trag die Sätze aus deinem Arbeitsvertrag oder Tarifvertrag ein. Sie stehen oft auch auf der Lohnabrechnung.",
+    rules:{night:{v:25,u:"pct",from:"20:00",to:"06:00"},sat:{v:0,u:"pct",from:"13:00",to:"20:00"},sun:{v:25,u:"pct"},hol:{v:50,u:"pct",eastPent:false},eve:{v:0,u:"pct",from:"14:00",d31:true},high:{v:0,u:"pct"},combine:"highest",endEarly:0,startEarly:0,mNight:0,mShift:0,delay:1}}
+};
+
+/* Prüft eine Schicht, gibt Fehlertext oder null zurück */
+function validate(sh){
+  const s=toMin(sh.s),e=toMin(sh.e);
+  if(s==null||e==null)return "Bitte Beginn und Ende eintragen.";
+  if(s===e)return "Beginn und Ende sind gleich.";
+  let len=e-s;if(len<=0)len+=1440;
+  if((+sh.b||0)>=len)return "Die Pause ist länger als die Schicht.";
+  if((+sh.b||0)<0)return "Die Pause kann nicht negativ sein.";
+  return null;
+}
+
+/* Kernrechnung: geht die Schicht Minute für Minute durch */
+function calc(dateKey,sh,cfg){
+  const R=cfg.rules,wage=+cfg.wage||0,land=cfg.land;
+  const r={min:0,paid:0,base:0,zu:0,taxfree:0,
+    m:{night:0,sat:0,sun:0,hol:0,eve:0,high:0},e:{night:0,sat:0,sun:0,hol:0,eve:0,high:0,shift:0}};
+  if(!sh||!sh.work||validate(sh))return r;
+  const [y,mo,d]=dateKey.split("-").map(Number);
+  const start=toMin(sh.s);let end=toMin(sh.e);if(end<=start)end+=1440;
+  const f=Math.max(0,(end-start)-(+sh.b||0))/(end-start);
+  const fz=R.zuBreak===false?1:f; /* Pause bei Zulagenstunden abziehen? */
+  const rate=x=>x.u==="eur"?(+x.v||0):wage*(+x.v||0)/100; /* Euro je Stunde */
+  const capW=Math.min(wage,50);let maxFree=0;
+  for(let t=start;t<end;t++){
+    const dt=new Date(y,mo-1,d+Math.floor(t/1440)),tod=t%1440,dow=dt.getDay();
+    const hol=holName(dt,land)||(R.hol.eastPent&&isEasterOrPentecostSunday(dt));
+    r.min++;
+    /* Tageszuschläge: Kandidaten sammeln */
+    const c=[];
+    if(dow===6&&inWin(tod,R.sat.from,R.sat.to))c.push(["sat",rate(R.sat)]);
+    if(dow===0)c.push(["sun",rate(R.sun)]);
+    if(hol)c.push(["hol",rate(R.hol)]);
+    const mm=dt.getMonth(),dd=dt.getDate();
+    if(mm===11&&(dd===24||(dd===31&&R.eve.d31))&&tod>=toMin(R.eve.from))c.push(["eve",rate(R.eve)]);
+    if(isHighHoliday(dt))c.push(["high",rate(R.high)]);
+    const used=c.filter(x=>x[1]>0);
+    if(R.combine==="sum")used.forEach(([k,v])=>{r.m[k]+=fz;r.e[k]+=v/60*fz});
+    else if(used.length){const best=used.reduce((a,b)=>b[1]>a[1]?b:a);r.m[best[0]]+=fz;r.e[best[0]]+=best[1]/60*fz}
+    if(inWin(tod,R.night.from,R.night.to)){r.m.night+=fz;r.e.night+=rate(R.night)/60*fz}
+    /* Steuerfreie Obergrenze nach § 3b EStG (Schätzung) */
+    const carry=tod<240&&t>=1440&&start<1440; /* Nachtarbeit vor 0 Uhr begonnen */
+    let p=(tod>=1200||tod<360)?(carry?40:25):0;
+    const dayPct=(x,xt)=>{const xm=x.getMonth(),xd=x.getDate();
+      if((xm===11&&(xd===25||xd===26))||(xm===4&&xd===1)||(xm===11&&xd===24&&xt>=840))return 150;
+      if(holName(x,land)||(xm===11&&xd===31&&xt>=840))return 125;
+      return x.getDay()===0?50:0};
+    let dp=dayPct(dt,tod);
+    if(carry)dp=Math.max(dp,dayPct(new Date(y,mo-1,d+Math.floor(t/1440)-1),1440));
+    p+=dp;
+    maxFree+=capW*p/100/60*fz;
+  }
+  if(R.endEarly>0){const em=end%1440;if(em>0&&em<240){r.e.shift+=+R.endEarly}}
+  if(R.startEarly>0){const sm=start%1440;if(sm<240){r.e.shift+=+R.startEarly}}
+  r.paid=r.min*f;
+  r.base=r.paid/60*wage;
+  r.zu=Object.values(r.e).reduce((a,b)=>a+b,0);
+  const timeZu=r.zu-r.e.shift;
+  r.taxfree=Math.min(timeZu,maxFree);
+  return r;
+}
+/* ZULO ENGINE END */
+if(typeof module!=="undefined")module.exports={calc,PRESETS,holidays,validate};
+
+/* ZULO NETTO START */
+/* Lohnsteuer und Sozialabgaben 2026, nach dem Programmablaufplan (PAP) 2026 des BMF, vereinfacht für laufenden Monatslohn */
+const NET26={GFB:12348,SOLZFREI:20350,W1:14071,W2:34939,W3:222260,ANP:1230,SAP:36,EFA:4260,KFB:9756,
+  BBGKV:69750/12,BBGRV:101400/12,RV:0.093,AV:0.013,KVBASE:0.073,PVBASE:0.018};
+function uptab(x){
+  x=Math.floor(x);let st;
+  if(x<=NET26.GFB)st=0;
+  else if(x<=17799){const y=(x-NET26.GFB)/10000;st=(y*914.51+1400)*y}
+  else if(x<=69878){const y=(x-17799)/10000;st=(y*173.10+2397)*y+1034.87}
+  else if(x<=277825)st=x*0.42-11135.63;
+  else st=x*0.45-19470.38;
+  return Math.floor(st);
+}
+function up56(zx){const st1=uptab(zx*1.25),st2=uptab(zx*0.75),diff=(st1-st2)*2,mist=Math.floor(zx*0.14);return mist>diff?mist:diff}
+function mst56(zzx){
+  const {W1,W2,W3}=NET26;let st;
+  if(zzx>W2){st=up56(W2);st=zzx>W3?Math.floor(st+(W3-W2)*0.42+(zzx-W3)*0.45):Math.floor(st+(zzx-W2)*0.42)}
+  else{st=up56(zzx);if(zzx>W1){const vergl=st;const hoch=Math.floor(up56(W1)+(zzx-W1)*0.42);st=hoch<vergl?hoch:vergl}}
+  return st;
+}
+/* Jahressteuer für ein zu versteuerndes Einkommen je Steuerklasse */
+function estJahr(zve,stkl){
+  zve=Math.max(0,zve);
+  if(stkl===5||stkl===6)return mst56(Math.floor(zve));
+  if(stkl===3)return uptab(Math.floor(zve/2))*2;
+  return uptab(zve);
+}
+/* p: {brutto (Monat), stkl 1..6, kinder (Kinderfreibeträge), kirche (bool), land, kvz (Zusatzbeitrag %), kinderlos23 (bool), pvKinder (Anzahl Kinder unter 25)} */
+function netto(p){
+  /* brutto = steuerpflichtiges Brutto; sv = sozialversicherungspflichtiges Brutto (falls abweichend) */
+  const N=NET26,b=Math.max(0,+p.brutto||0),svb=Math.max(0,p.sv!=null?+p.sv:b),stkl=+p.stkl||1,land=p.land||"BW";
+  const kvz=(+p.kvz||0)/100;
+  /* Sozialabgaben Arbeitnehmer */
+  const bKV=Math.min(svb,N.BBGKV),bRV=Math.min(svb,N.BBGRV);
+  let pv=N.PVBASE+(land==="SN"?0.005:0);
+  if(p.kinderlos23)pv+=0.006;
+  else if((+p.pvKinder||0)>=2)pv-=0.0025*Math.min(4,(+p.pvKinder)-1);
+  const kv=bKV*(N.KVBASE+kvz/2),pvB=bKV*pv,rv=bRV*N.RV,av=bRV*N.AV;
+  /* Vorsorgepauschale (Jahr) */
+  const j=b*12,jv=(p.vspSv?svb:b)*12,jKV=Math.min(jv,N.BBGKV*12),jRV=Math.min(jv,N.BBGRV*12);
+  const vspr=jRV*N.RV;
+  const vspkvpv=stkl===6?0:jKV*(0.07+kvz/2+pv);
+  const vsphb=Math.min(jRV*N.AV+vspkvpv,1900);
+  const vsp=Math.ceil(vspr+Math.max(vspkvpv,vsphb));
+  const anp=stkl===6?0:N.ANP,sap=stkl===6?0:N.SAP,efa=stkl===2?N.EFA:0;
+  const zve=j-anp-sap-efa-vsp;
+  const lstJ=estJahr(zve,stkl);
+  /* Soli und Kirchensteuer: mit Kinderfreibeträgen */
+  const kfb=(stkl<=3?N.KFB:stkl===4?N.KFB/2:0)*(+p.kinder||0);
+  const jbmg=estJahr(zve-kfb,stkl);
+  const free=N.SOLZFREI*(stkl===3?2:1);
+  let soliJ=0;if(jbmg>free)soliJ=Math.min(jbmg*0.055,(jbmg-free)*0.119);
+  const kistSatz=(land==="BY"||land==="BW")?0.08:0.09;
+  const kistJ=p.kirche?jbmg*kistSatz:0;
+  const lst=Math.floor(lstJ/12*100)/100,soli=Math.floor(soliJ/12*100)/100,kist=Math.floor(kistJ/12*100)/100;
+  const sv=kv+pvB+rv+av;
+  return {brutto:b,lst,soli,kist,kv,pv:pvB,rv,av,sv,steuern:lst+soli+kist,netto:b-lst-soli-kist-sv};
+}
+/* ZULO NETTO END */
+if(typeof module!=="undefined")module.exports={netto,estJahr};
+
+
+const TYPES={
+  F:{name:"Früh",color:"var(--f-early)",work:true},
+  S:{name:"Spät",color:"var(--f-late)",work:true},
+  N:{name:"Nacht",color:"var(--f-night)",work:true},
+  X:{name:"Frei",color:"var(--f-off)",work:false},
+  U:{name:"Urlaub",color:"var(--f-vac)",work:false},
+  K:{name:"Krank",color:"var(--f-sick)",work:false},
+  D:{name:"Dispo",color:"var(--f-dispo)",work:false}
+};
+const TPL={F:{s:"05:00",e:"13:30",b:30},S:{s:"13:00",e:"21:30",b:30},N:{s:"21:00",e:"05:30",b:30}};
+const KEY="zulo.v2";
+const clone=o=>JSON.parse(JSON.stringify(o));
+const $=id=>document.getElementById(id);
+const MONTHS=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const fmt=(n,d=2)=>n.toLocaleString("de-DE",{minimumFractionDigits:d,maximumFractionDigits:d});
+const eur=n=>fmt(n)+" €";
+const eur0=n=>fmt(Math.round(n),0)+" €";
+const hrs=min=>(min/60).toLocaleString("de-DE",{maximumFractionDigits:1})+" Std";
+
+/* ---------- Speicher ---------- */
+function freshState(){return{cfg:null,shifts:{},tpl:clone(TPL)}}
+function load(){
+  let s=null;
+  try{s=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  if(!s){
+    s=freshState();
+    try{const old=JSON.parse(localStorage.getItem("zulo.v1"));if(old&&old.shifts){for(const k in old.shifts){const x=old.shifts[k];if(!x.demo)s.shifts[k]={t:x.t,s:x.s,e:x.e,b:x.b}}}}catch(e){}
+    if(!Object.keys(s.shifts).length)seedDemo(s);
+  }
+  if(!s.tpl)s.tpl=clone(TPL);
+  if(!s.shifts)s.shifts={};
+  return s;
+}
+let saveOk=true;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));saveOk=true}catch(e){if(saveOk)toast("Speichern auf diesem Gerät nicht möglich");saveOk=false}}
+function seedDemo(s){
+  const d=new Date(),y=d.getFullYear(),m=d.getMonth();
+  const pat="FFSSXXNNNXXFFSSUUXSSNNXXFFFKXSS";
+  for(let i=1;i<=new Date(y,m+1,0).getDate();i++){
+    const c=pat[(i-1)%pat.length];
+    s.shifts[dk(y,m,i)]=TPL[c]?{t:c,...TPL[c],demo:true}:{t:c,demo:true};
+  }
+}
+let state=load();
+let cur=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})();
+let editing=null;
+const cfg=()=>{const c=state.cfg||{tarif:"gesetz",wage:0,land:"BW",rules:clone(PRESETS.gesetz.rules)};if(!c.payMode)c.payMode="hour";if(c.tarif==="dbevg"&&!c.modified&&!c.mig3&&c.rules){c.rules.mNight=0;c.rules.mShift=0;c.mig3=1}if(c.rules&&(c.rules.delay===undefined||c.rules.roundMonth===undefined)&&PRESETS[c.tarif]){const P=PRESETS[c.tarif].rules;["mNight","mShift","delay","zuBreak","roundMonth"].forEach(k=>{if(c.rules[k]===undefined)c.rules[k]=P[k]})}return c};
+const isMonth=c=>c.payMode==="month";
+const taxCfg=c=>{if(!c.tax)c.tax={stkl:1,kinder:0,kirche:false,kvz:2.9,kinderlos23:true,pvKinder:0};return c.tax};
+/* Was im Monat m tatsächlich aufs Konto kommt: Grundgehalt dieses Monats + Zuschläge aus dem Monat (m minus Verzögerung) */
+const ITEMTYPES={umw:"Gehaltsumwandlung, z. B. Firmenrad (vor Steuer und Sozialabgaben)",umwSt:"Gehaltsumwandlung nur steuerfrei, z. B. PC Leasing",gwv:"Geldwerter Vorteil, wird nur versteuert",plus:"Zusätzliches Brutto, z. B. feste Zulage",netAbz:"Abzug vom Netto, z. B. Kantine",netPlus:"Zuschuss netto, z. B. Erstattung"};
+function itemSums(c){const S={umw:0,umwSt:0,gwv:0,plus:0,netAbz:0,netPlus:0};(c.items||[]).forEach(it=>{if(S[it.t]!=null)S[it.t]+=Math.max(0,+it.v||0)});return S}
+/* Was im Monat m aufs Konto kommt: erst das Gehalt mit allen Abzügen, dann die Zulagen aus dem Vormonat obendrauf */
+function payout(y,m){
+  const c=cfg(),dl=+(c.rules.delay??1),back=new Date(y,m-dl,1);
+  const T=monthTotals(y,m),B=dl>0?monthTotals(back.getFullYear(),back.getMonth()):T;
+  const base=isMonth(c)?(+c.monthly||0):T.base,S=itemSums(c);
+  const cash=base+S.plus-S.umw-S.umwSt,svB=base+S.plus-S.umw+S.gwv,taxB=svB-S.umwSt;
+  const t=taxCfg(c),np=(tb,sb)=>netto({brutto:tb,sv:sb,stkl:+t.stkl,kinder:+t.kinder,kirche:!!t.kirche,land:c.land,kvz:+t.kvz,kinderlos23:!!t.kinderlos23,pvKinder:+t.pvKinder});
+  const ded=n=>n.lst+n.soli+n.kist+n.sv;
+  const n0=np(taxB,svB);
+  const salNet=cash-ded(n0)-S.netAbz+S.netPlus;
+  const taxfree=Math.min(B.taxfree,B.zu),zuTaxable=B.zu-taxfree;
+  const n1=np(taxB+zuTaxable,svB+zuTaxable);
+  const zuAbz=ded(n1)-ded(n0),zuNet=B.zu-zuAbz;
+  return{delay:dl,back,base,S,cash,n0,salNet,ded0:ded(n0),zu:B.zu,taxfree,zuAbz,zuNet,total:salNet+zuNet};
+}
+/* Stundensatz für Zuschläge: Monatsentgelt geteilt durch (Wochenstunden x 4,348), wie im TVöD */
+const derivedRate=c=>(+c.hours>0)?(+c.monthly||0)/(+c.hours*4.348):0;
+const zuRate=c=>isMonth(c)?((+c.zuRate>0)?+c.zuRate:derivedRate(c)):(+c.wage||0);
+const calcCfg=()=>{const c=cfg();return{...c,wage:zuRate(c)}};
+const shiftFor=sh=>sh?{...sh,work:!!TYPES[sh.t]?.work}:null;
+
+/* ---------- Kalender ---------- */
+function monthTotals(y,m){
+  const T={paid:0,base:0,zu:0,taxfree:0,m:{night:0,sat:0,sun:0,hol:0,eve:0,high:0},e:{night:0,sat:0,sun:0,hol:0,eve:0,high:0,shift:0},count:{},shifts:0};
+  for(let i=1;i<=new Date(y,m+1,0).getDate();i++){
+    const k=dk(y,m,i),sh=state.shifts[k];if(!sh||!TYPES[sh.t])continue;
+    T.count[sh.t]=(T.count[sh.t]||0)+1;
+    if(!TYPES[sh.t].work)continue;
+    T.shifts++;
+    const r=calc(k,shiftFor(sh),calcCfg());
+    T.paid+=r.paid;T.base+=r.base;T.zu+=r.zu;T.taxfree+=r.taxfree;
+    for(const x in r.m)T.m[x]+=r.m[x];for(const x in r.e)T.e[x]+=r.e[x];
+  }
+  if(isMonth(cfg()))T.base=+cfg().monthly||0;
+  /* Monatspauschalen, z. B. Bahn: pers. Nachtzulage oder Schichtzulage */
+  const R=cfg().rules;T.e.month=0;
+  if(R.roundMonth){/* Zulagenstunden im Monat auf ganze Stunden runden (Bahn) */
+    const w=zuRate(cfg()),rt=x=>x.u==="eur"?(+x.v||0):w*(+x.v||0)/100;let d=0;
+    for(const k of ["night","sat","sun","hol","eve","high"]){const h=Math.round(T.m[k]/60);const ne=h*rt(R[k]);if(T.m[k]>0){d+=ne-T.e[k];T.e[k]=ne;T.m[k]=h*60}}
+    T.zu+=d;}
+  if(+R.mNight>0&&T.m.night>0){T.e.month=+R.mNight;T.monthLbl="Pauschale bei Nachtarbeit"}
+  else if(+R.mShift>0&&T.shifts>0){T.e.month=+R.mShift;T.monthLbl="Schichtzulage pauschal"}
+  T.zu+=T.e.month;
+  return T;
+}
+function render(){
+  const {y,m}=cur,c=cfg();
+  $("mtitle").textContent=`${MONTHS[m]} ${y}`;
+  $("demo").hidden=!Object.values(state.shifts).some(s=>s.demo);
+  const T=monthTotals(y,m);
+  const P=payout(y,m),dl=P.delay;
+  $("hLbl").textContent=`Aufs Konto im ${MONTHS[m]} ca.`;
+  $("hNetto").textContent=eur0(P.total);
+  $("hBrutto").textContent=`Gehalt netto ${eur0(P.salNet)} + Zulagen netto ${eur0(P.zuNet)}`;
+  $("hZu").textContent=`+${eur0(T.zu)} Zuschläge im ${MONTHS[m]}`;
+  {const S=P.S,bm=MONTHS[P.back.getMonth()],L=[[isMonth(cfg())?"Gehalt brutto":"Grundlohn brutto",eur(P.base+S.plus)]];
+   if(S.umw+S.umwSt>0)L.push(["Gehaltsumwandlung (Rad, Leasing)","−"+eur(S.umw+S.umwSt)]);
+   L.push(["Steuern und Sozialabgaben","−"+eur(P.ded0)]);
+   if(S.netAbz>0)L.push(["Abzüge vom Netto","−"+eur(S.netAbz)]);
+   if(S.netPlus>0)L.push(["Zuschüsse netto","+"+eur(S.netPlus)]);
+   L.push(["Gehalt netto",eur(P.salNet),"sub"],[`+ Zulagen aus ${dl>0?bm:MONTHS[m]} netto`,P.zu>0.004?"+"+eur(P.zuNet):"keine Schichten eingetragen"],["Gesamt aufs Konto",eur(P.total),"total"]);
+   $("payCard").innerHTML=`<div class="sec" style="margin:8px 0 2px">Dein Geld im ${MONTHS[m]}</div>`+rows(L)+`<button type="button" class="linkbtn" id="payMore" style="margin:2px 0 10px">Ganze Rechnung ansehen</button>`;
+   $("payMore").onclick=()=>showView("sum");}
+  $("hTf").textContent=dl>0?`brutto, kommen im ${MONTHS[new Date(y,m+dl,1).getMonth()]} aufs Konto`:(T.taxfree>0.5?`davon ca. ${eur0(T.taxfree)} steuerfrei`:"");
+  $("hSub").textContent=isMonth(c)?`${hrs(T.paid)} · ${T.shifts} Schichten · Gehalt ${eur0(+c.monthly||0)} + Zuschläge`:`${hrs(T.paid)} · ${T.shifts} Schichten · ${fmt(+c.wage||0)} € pro Stunde`;
+  $("hTarif").textContent=PRESETS[c.tarif].name+(c.modified?" (angepasst)":"");
+  const g=$("grid");g.innerHTML="";
+  const first=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate();
+  const tk=keyOf(new Date());
+  for(let i=0;i<first;i++){const b=document.createElement("div");b.className="day out";g.appendChild(b)}
+  for(let d=1;d<=days;d++){
+    const k=dk(y,m,d),dt=new Date(y,m,d),sh=state.shifts[k],hol=holName(dt,c.land);
+    const b=document.createElement("button");b.className="day";b.type="button";
+    if(dt.getDay()===0)b.classList.add("sun");if(hol)b.classList.add("hol");if(k===tk)b.classList.add("today");
+    b.setAttribute("aria-label",`${d}. ${MONTHS[m]}${hol?", "+hol:""}${sh&&TYPES[sh.t]?", "+TYPES[sh.t].name:""}`);
+    let html=`<span class="n">${d}</span>`;
+    if(sh&&TYPES[sh.t]){
+      const r=calc(k,shiftFor(sh),calcCfg());
+      if(TYPES[sh.t].work)html+=`<span class="h">${(r.paid/60).toLocaleString("de-DE",{maximumFractionDigits:1})}h</span>`;
+      html+=`<span class="chip" style="background:${TYPES[sh.t].color}">${sh.t}</span>`;
+      if(r.zu>0.005)html+=`<span class="dot"></span>`;
+    }
+    b.innerHTML=html;b.onclick=()=>openSheet(k);g.appendChild(b);
+  }
+  $("legend").innerHTML=Object.entries(TYPES).map(([k,t])=>`<span><i style="background:${t.color}"></i>${k} ${t.name}</span>`).join("");
+  const hols=Object.entries(holidays(y,c.land)).filter(([k])=>k.startsWith(`${y}-${pad(m+1)}`)).map(([k,n])=>`${+k.slice(8)}. ${n}`);
+  $("calNote").textContent=(hols.length?`Feiertage in ${LAENDER[c.land]}: ${hols.join(", ")}. `:"")+"Orange Zahl = Sonntag oder Feiertag, Punkt = Schicht mit Zuschlag.";
+  renderSummary(T);
+}
+const LBL={night:"Nacht",sat:"Samstag",sun:"Sonntag",hol:"Feiertag",eve:"24. und 31.12.",high:"Hohe Feiertage"};
+const rateTxt=x=>x.u==="eur"?`${fmt(+x.v)} €/Std`:`${fmt(+x.v,0)} %`;
+function rows(list){return list.map(([k,v,c])=>`<div class="row ${c||""}"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("")}
+function renderSummary(T){
+  const R=cfg().rules,tot=T.base+T.zu||1;
+  const money=[[isMonth(cfg())?"Grundgehalt (fest)":"Grundlohn",eur(T.base)]];
+  for(const k of ["night","sat","sun","hol","eve","high"])if(T.e[k]>0.004)money.push([`${LBL[k]} ${rateTxt(R[k])}`,eur(T.e[k])]);
+  if(T.e.shift>0.004)money.push(["Zuschlag je Schicht (0 bis 4 Uhr)",eur(T.e.shift)]);
+  if(T.e.month>0.004)money.push([T.monthLbl,eur(T.e.month)]);
+  money.push(["Zuschläge gesamt",eur(T.zu)],["Brutto",eur(T.base+T.zu),"total"]);
+  if(T.taxfree>0.004)money.push(["davon steuerfrei (Schätzung)",eur(T.taxfree),"good"]);
+  $("sMoney").innerHTML=`<div class="bar"><span style="width:${T.base/tot*100}%;background:var(--muted)"></span><span style="width:${T.zu/tot*100}%;background:var(--accent)"></span></div>`+rows(money);
+  $("sHours").innerHTML=rows([["Bezahlte Arbeitszeit",hrs(T.paid)],["davon Nacht",hrs(T.m.night)],["davon Samstag",hrs(T.m.sat)],["davon Sonntag",hrs(T.m.sun)],["davon Feiertag",hrs(T.m.hol+T.m.high+T.m.eve)]]);
+  {const {y,m}=cur,dl=+(cfg().rules.delay??1);
+   const fwd=new Date(y,m+dl,1),back=new Date(y,m-dl,1),B=monthTotals(back.getFullYear(),back.getMonth());
+   const mn=d=>`${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+   const P=payout(y,m),n0=P.n0,S=P.S,zl=dl>0?` aus ${MONTHS[back.getMonth()]}`:"",its=cfg().items||[];
+   const L=[[isMonth(cfg())?`Gehalt brutto ${MONTHS[m]}`:"Grundlohn brutto",eur(P.base)]];
+   its.filter(x=>x.t==="plus"&&+x.v>0).forEach(x=>L.push([`+ ${x.n||"Zusatz"}`,eur(+x.v)]));
+   its.filter(x=>(x.t==="umw"||x.t==="umwSt")&&+x.v>0).forEach(x=>L.push([x.n||"Gehaltsumwandlung","−"+eur(+x.v)]));
+   if(its.some(x=>x.t!=="netAbz"&&x.t!=="netPlus"&&+x.v>0))L.push(["Ausgezahltes Brutto",eur(P.cash),"sub"]);
+   its.filter(x=>x.t==="gwv"&&+x.v>0).forEach(x=>L.push([`${x.n||"Geldwerter Vorteil"} (nur versteuert)`,eur(+x.v)]));
+   L.push(["Lohnsteuer","−"+eur(n0.lst)]);
+   if(n0.soli>0)L.push(["Solidaritätszuschlag","−"+eur(n0.soli)]);
+   if(n0.kist>0)L.push(["Kirchensteuer","−"+eur(n0.kist)]);
+   L.push(["Krankenversicherung","−"+eur(n0.kv)],["Pflegeversicherung","−"+eur(n0.pv)],["Rentenversicherung","−"+eur(n0.rv)],["Arbeitslosenversicherung","−"+eur(n0.av)]);
+   its.filter(x=>x.t==="netAbz"&&+x.v>0).forEach(x=>L.push([x.n||"Abzug vom Netto","−"+eur(+x.v)]));
+   its.filter(x=>x.t==="netPlus"&&+x.v>0).forEach(x=>L.push([x.n||"Zuschuss netto","+"+eur(+x.v)]));
+   L.push(["Gehalt netto",eur(P.salNet),"sub"]);
+   L.push([`+ Zulagen${zl} brutto`,eur(P.zu)]);
+   if(P.taxfree>0.004)L.push(["davon steuer und abgabenfrei",eur(P.taxfree),"good"]);
+   if(P.zuAbz>0.004)L.push(["Abzüge auf die übrigen Zulagen","−"+eur(P.zuAbz)]);
+   L.push([`+ Zulagen netto`,eur(P.zuNet),"sub"]);
+   L.push([`Aufs Konto im ${MONTHS[m]} ca.`,eur(P.total),"total"]);
+   if(dl>0)L.push([`Zuschläge aus ${MONTHS[m]} kommen im`,mn(fwd)]);
+   $("sPay").innerHTML=rows(L);}
+  $("sShifts").innerHTML=rows(Object.entries(TYPES).map(([k,t])=>[t.name,(T.count[k]||0)+"×"]));
+}
+
+/* ---------- Schicht bearbeiten ---------- */
+function openSheet(k){
+  const [y,m,d]=k.split("-").map(Number);const dt=new Date(y,m-1,d);
+  const ex=state.shifts[k];
+  editing={k,sh:ex?{...ex}:{t:"W",s:"",e:"",b:0},autoB:!ex};
+  if(TYPES[editing.sh.t]?.work)editing.sh.t="W";
+  $("shTitle").textContent=dt.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
+  $("shMeta").textContent=holName(dt,cfg().land)||(ex?"Schicht bearbeiten":"Neue Schicht");
+  $("bDel").hidden=!ex;
+  const opts=[["W","Arbeit","var(--accent)"],...Object.entries(TYPES).filter(([c,t])=>!t.work).map(([c,t])=>[c,t.name,t.color])];
+  $("types").innerHTML=opts.map(([c,n,col])=>`<button type="button" data-t="${c}" aria-pressed="${editing.sh.t===c}"><i style="background:${col}"></i>${n}</button>`).join("");
+  $("types").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    const c=b.dataset.t;editing.sh=c==="W"?{t:"W",s:editing.sh.s||"",e:editing.sh.e||"",b:editing.sh.b||0}:{t:c};fillTimes();
+    $("types").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+  $("quick").innerHTML=["F","S","N"].map(c=>`<button type="button" data-q="${c}">${TYPES[c].name} ${state.tpl[c].s} bis ${state.tpl[c].e}</button>`).join("");
+  $("quick").querySelectorAll("button").forEach(b=>b.onclick=()=>{const t=state.tpl[b.dataset.q];editing.sh={t:"W",s:t.s,e:t.e,b:t.b};editing.autoB=false;fillTimes()});
+  fillTimes();openLayer("sheet");
+  if(!ex)setTimeout(()=>{try{$("tStart").focus()}catch(e){}},250);
+}
+/* Schichtart automatisch aus den Zeiten: Nacht, wenn sie nachts beginnt oder überwiegend zwischen 22 und 6 Uhr liegt; sonst Früh bei Beginn vor 10 Uhr, sonst Spät */
+function classify(s,e){
+  const a=toMin(s);let b=toMin(e);if(a==null||b==null)return null;if(b<=a)b+=1440;
+  let night=0;for(let t=a;t<b;t++){const x=t%1440;if(x>=1320||x<360)night++}
+  if(a>=1140||a<240||night>=(b-a)/2)return "N";
+  return a<600?"F":"S";
+}
+const SHIFTNAME={F:"Frühschicht",S:"Spätschicht",N:"Nachtschicht"};
+function fillTimes(){
+  const sh=editing.sh,w=sh.t==="W";
+  $("times").hidden=!w;$("quick").hidden=!w;
+  if(w){$("tStart").value=sh.s||"";$("tEnd").value=sh.e||"";$("tBreak").value=sh.b??0}
+  updPreview();
+}
+function readTimes(){if(editing.sh.t==="W"){editing.sh.s=normTime($("tStart").value)||"";editing.sh.e=normTime($("tEnd").value)||"";editing.sh.b=Math.max(0,N($("tBreak").value)||0)}}
+$("tBreak").addEventListener("input",()=>{editing&&(editing.autoB=false)});
+function updPreview(){
+  readTimes();
+  const w=editing.sh.t==="W";
+  if(!w){const t=TYPES[editing.sh.t];$("shErr").hidden=true;$("bSave").disabled=false;$("bSaveTop").disabled=false;$("pv").innerHTML=rows([[t.name,"kein Verdienst berechnet"]]);return}
+  const raw=[$("tStart").value,$("tEnd").value];
+  if(!raw[0]||!raw[1]){$("shErr").hidden=true;$("bSave").disabled=true;$("bSaveTop").disabled=true;$("pv").innerHTML=rows([["Tipp Beginn und Ende ein","Zulo erkennt die Schicht selbst"]]);return}
+  const kind=classify(editing.sh.s,editing.sh.e);
+  /* Pause automatisch nach Arbeitszeitgesetz vorschlagen, solange sie nicht selbst geändert wurde */
+  if(editing.autoB&&kind){let len=toMin(editing.sh.e)-toMin(editing.sh.s);if(len<=0)len+=1440;const sug=len>9*60+45?45:len>6*60+30?30:0;if(sug!==editing.sh.b){editing.sh.b=sug;$("tBreak").value=sug}}
+  const sh={...editing.sh,t:kind||"S",work:true};
+  const bad=raw.some(v=>v&&normTime(v)===null);
+  const err=bad?"Uhrzeit ungültig. Tipp zum Beispiel 1445 oder 14:45.":validate(sh);
+  $("shErr").hidden=!err;$("shErr").textContent=err||"";$("bSave").disabled=!!err;$("bSaveTop").disabled=!!err;
+  if(err){$("pv").innerHTML="";return}
+  let len=toMin(sh.e)-toMin(sh.s);if(len<=0)len+=1440;
+  const [y,mo,d]=editing.k.split("-").map(Number);const nextDay=toMin(sh.e)<=toMin(sh.s);
+  const endDay=nextDay?new Date(y,mo-1,d+1).toLocaleDateString("de-DE",{weekday:"long"}):"";
+  const head=[["Erkannt",`${SHIFTNAME[kind]}`],["Dauer",`${Math.floor(len/60)}:${pad(len%60)} Std`],["Pause",sh.b?`${sh.b} min`+(editing.autoB?" (Vorschlag)":""):"keine"],["Feierabend",sh.e+(nextDay?` am ${endDay}`:" Uhr")]];
+  const r=calc(editing.k,sh,calcCfg()),R=cfg().rules,mon=isMonth(cfg());
+  const zl=[...head,["Arbeitszeit",hrs(r.paid)],mon?["Grundgehalt","fest im Monat"]:["Grundlohn",eur(r.base)]];
+  for(const k of ["night","sat","sun","hol","eve","high"])if(r.e[k]>0.004)zl.push([`${LBL[k]} · ${hrs(r.m[k])}`,"+"+eur(r.e[k])]);
+  if(r.e.shift>0.004)zl.push(["Zuschlag je Schicht","+"+eur(r.e.shift)]);
+  zl.push([mon?"Zuschläge dieser Schicht":"Diese Schicht",eur(mon?r.zu:r.base+r.zu),"total"]);
+  $("pv").innerHTML=rows(zl);
+}
+["tStart","tEnd","tBreak"].forEach(id=>$(id).addEventListener("input",updPreview));
+/* Android Zurück Taste: schließt erst das offene Fenster, dann geht es zum Kalender zurück */
+const canHist=(()=>{try{return window.self===window.top}catch(e){return false}})();
+let layerPushed=false,viewPushed=false,curView="cal",ignorePop=false;
+function openLayer(id){$("scrim").hidden=false;$(id).hidden=false;
+  if(canHist&&!layerPushed&&id!=="onboard"){try{history.pushState({zulo:"layer"},"");layerPushed=true}catch(e){}}}
+function hideLayers(){$("scrim").hidden=true;$("sheet").hidden=true;$("slipSheet").hidden=true;$("newsSheet").hidden=true;newsOpen=null;editing=null;slipReset()}
+function closeSheet(){if(!state.cfg)return;hideLayers();if(layerPushed){layerPushed=false;ignorePop=true;try{history.back()}catch(e){ignorePop=false}}}
+window.addEventListener("popstate",()=>{
+  if(ignorePop){ignorePop=false;return}
+  if(layerPushed){layerPushed=false;if(state.cfg)hideLayers();return}
+  if(curView!=="cal"){viewPushed=false;showView("cal",true)}});
+$("scrim").onclick=closeSheet;$("bCancel").onclick=closeSheet;
+$("bSave").onclick=()=>{readTimes();const sh={...editing.sh};delete sh.demo;delete sh.work;
+  if(sh.t==="W"){const k=classify(sh.s,sh.e);if(!k)return;sh.t=k}
+  if(TYPES[sh.t].work&&validate(shiftFor(sh)))return;
+  state.shifts[editing.k]=sh;save();closeSheet();render();toast("Gespeichert")};
+$("bDel").onclick=()=>{delete state.shifts[editing.k];save();closeSheet();render();toast("Gelöscht")};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(editing||newsOpen))closeSheet()});
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>el.hidden=true,1800)}
+
+/* ---------- Navigation ---------- */
+$("prev").onclick=()=>{cur.m--;if(cur.m<0){cur.m=11;cur.y--}render()};
+$("next").onclick=()=>{cur.m++;if(cur.m>11){cur.m=0;cur.y++}render()};
+function showView(v,fromPop){
+  if(!fromPop&&canHist){
+    if(v!=="cal"&&!viewPushed){try{history.pushState({zulo:"view"},"");viewPushed=true}catch(e){}}
+    else if(v==="cal"&&viewPushed){viewPushed=false;curView="cal";ignorePop=true;try{history.back()}catch(e){ignorePop=false}}
+  }
+  curView=v;
+  document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-selected",x.dataset.view===v));
+  ["cal","sum","news","set"].forEach(x=>$("v-"+x).hidden=x!==v);
+  $("monthbar").hidden=v==="set"||v==="news";
+  if(v==="news")startNews();
+  if(v==="set")renderSettings();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+$("hTarifBtn").onclick=()=>showView("set");
+$("clearDemo").onclick=()=>{for(const k in state.shifts)if(state.shifts[k].demo)delete state.shifts[k];save();render();toast("Beispiele gelöscht")};
+
+/* ---------- Einstellungen ---------- */
+const landOpts=sel=>Object.entries(LAENDER).map(([k,n])=>`<option value="${k}"${k===sel?" selected":""}>${n}</option>`).join("");
+function renderSettings(){
+  const c=cfg(),P=PRESETS[c.tarif];
+  $("sTarif").innerHTML=Object.entries(PRESETS).map(([k,p])=>`<option value="${k}"${k===c.tarif?" selected":""}>${p.name}</option>`).join("");
+  $("sTarifHint").textContent=P.hint;
+  $("sTarifStand").innerHTML=`Stand: ${P.stand}${P.src?` · <a href="${P.src}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Quelle</a>`:""}`;
+  $("payMode").value=c.payMode;$("pmMonth").hidden=!isMonth(c);$("pmHour").hidden=isMonth(c);
+  $("wage").value=c.wage||"";$("monthly").value=c.monthly||"";$("hours").value=c.hours||"";$("zuRateIn").value=c.zuRate||"";
+  $("zuRateHint").textContent=`Automatisch ${fmt(derivedRate(c))} €. `+((c.tarif==="tvoed"||c.tarif==="tvl")?"Im TVöD und TV-L zählt Stufe 3 deiner Entgeltgruppe. Trag den Satz hier ein, wenn du nicht in Stufe 3 bist.":"Nur ändern, wenn dein Tarif anders rechnet.");
+  $("land").innerHTML=landOpts(c.land);
+  {const t=taxCfg(c);$("tStkl").value=t.stkl;$("tKinder").value=t.kinder;$("tKirche").value=t.kirche?"1":"0";$("tKvz").value=t.kvz;$("tPvK").value=t.pvKinder;$("tKl").value=t.kinderlos23?"1":"0";}
+  $("modTag").innerHTML=c.modified?`<span class="mod">angepasst</span> <button class="linkbtn" id="restore">Vorlage wiederherstellen</button>`:"";
+  if(c.modified)$("restore").onclick=()=>{c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Vorlage wiederhergestellt")};
+  renderRules();renderTpl();renderItems();enhanceAll();
+}
+function unitSel(id,u){return `<select id="${id}" aria-label="Einheit"><option value="pct"${u==="pct"?" selected":""}>%</option><option value="eur"${u==="eur"?" selected":""}>€/Std</option></select>`}
+function renderRules(){
+  const R=cfg().rules;
+  const line=(k,title,sub,extra="")=>`<div class="f"><span>${title}<small>${sub}</small></span><span class="inp"><input id="r_${k}_v" type="text" data-num="1" min="0" step="0.01" inputmode="decimal" value="${R[k].v}" aria-label="${title} Wert">${unitSel("r_"+k+"_u",R[k].u)}${extra}</span></div>`;
+  $("rules").innerHTML=
+    line("night","Nacht","Zeitfenster der Nacht",`<input id="r_night_from" type="time" value="${R.night.from}" aria-label="Nacht ab"><span class="unit">bis</span><input id="r_night_to" type="time" value="${R.night.to}" aria-label="Nacht bis">`)+
+    line("sat","Samstag","0 = kein Zuschlag",`<input id="r_sat_from" type="time" value="${R.sat.from}" aria-label="Samstag ab"><span class="unit">bis</span><input id="r_sat_to" type="time" value="${R.sat.to}" aria-label="Samstag bis">`)+
+    line("sun","Sonntag","ganzer Tag")+
+    line("hol","Feiertag",`gesetzliche Feiertage in ${LAENDER[cfg().land]}`)+
+    line("eve","Heiligabend und Silvester","ab Uhrzeit",`<input id="r_eve_from" type="time" value="${R.eve.from}" aria-label="ab Uhrzeit">`)+
+    line("high","Hohe Feiertage","Neujahr, 1. Mai, Ostern, Pfingsten, Weihnachten")+
+    `<div class="f"><span>Mehrere Zuschläge am selben Tag<small>Nacht kommt immer dazu</small></span><span class="inp"><select id="r_combine"><option value="highest"${R.combine==="highest"?" selected":""}>Nur der höchste</option><option value="sum"${R.combine==="sum"?" selected":""}>Alle addieren</option></select></span></div>`+
+    `<div class="f"><span>Zuschlag je Schicht<small>Ende zwischen 0 und 4 Uhr</small></span><span class="inp"><input id="r_endEarly" type="text" data-num="1" min="0" step="0.01" value="${R.endEarly}" aria-label="Zuschlag Schichtende"><span class="unit">€</span></span></div>`+
+    `<div class="f"><span>Pauschale im Monat bei Nachtarbeit<small>Bahn: persönliche Nachtzulage</small></span><span class="inp"><input id="r_mNight" type="text" data-num="1" min="0" step="0.01" value="${R.mNight||0}" aria-label="Pauschale Nachtarbeit"><span class="unit">€</span></span></div>`+
+    `<div class="f"><span>Pauschale im Monat ohne Nachtarbeit<small>Bahn: Schichtzulage</small></span><span class="inp"><input id="r_mShift" type="text" data-num="1" min="0" step="0.01" value="${R.mShift||0}" aria-label="Schichtzulage pauschal"><span class="unit">€</span></span></div>`+
+    `<div class="f"><span>Pausen bei Zuschlagsstunden<small>Bahn: werden nicht abgezogen</small></span><span class="inp"><select id="r_zuBreak"><option value="1"${R.zuBreak!==false?" selected":""}>abziehen</option><option value="0"${R.zuBreak===false?" selected":""}>nicht abziehen</option></select></span></div>`+
+    `<div class="f"><span>Zuschlagsstunden im Monat<small>Bahn: auf ganze Stunden gerundet</small></span><span class="inp"><select id="r_roundMonth"><option value="0"${!R.roundMonth?" selected":""}>genau</option><option value="1"${R.roundMonth?" selected":""}>auf ganze Stunden runden</option></select></span></div>`+
+    `<div class="f"><span>Zuschläge kommen aufs Konto<small>Bahn: einen Monat später, TVöD: zwei Monate später</small></span><span class="inp"><select id="r_delay"><option value="0"${+R.delay===0?" selected":""}>im selben Monat</option><option value="1"${+(R.delay??1)===1?" selected":""}>1 Monat später</option><option value="2"${+R.delay===2?" selected":""}>2 Monate später</option></select></span></div>`+
+    `<div class="f"><span>Zuschlag je Schicht<small>Beginn zwischen 0 und 4 Uhr</small></span><span class="inp"><input id="r_startEarly" type="text" data-num="1" min="0" step="0.01" value="${R.startEarly}" aria-label="Zuschlag Schichtbeginn"><span class="unit">€</span></span></div>`;
+  $("rules").querySelectorAll("input,select").forEach(el=>el.addEventListener("change",()=>{
+    const [,k,f]=el.id.split("_");
+    let val=(el.dataset.num||el.id==="r_delay")?Math.max(0,N(el.value)||0):el.value;
+    if(el.id==="r_zuBreak")val=el.value==="1";if(el.id==="r_roundMonth")val=el.value==="1";
+    if(f)R[k][f]=val;else R[k]=val;
+    cfg().modified=true;save();render();
+    $("modTag").innerHTML=`<span class="mod">angepasst</span> <button class="linkbtn" id="restore">Vorlage wiederherstellen</button>`;
+    $("restore").onclick=()=>{const c=cfg();c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Vorlage wiederhergestellt")};
+  }));
+}
+function renderItems(){
+  const c=cfg();c.items=c.items||[];
+  $("itemsList").innerHTML=c.items.length?c.items.map((it,i)=>`<div class="item">
+    <input type="text" id="it_n_${i}" value="${esc(it.n)}" placeholder="Bezeichnung" aria-label="Bezeichnung">
+    <span class="inp"><input type="text" data-num="1" id="it_v_${i}" min="0" step="0.01" inputmode="decimal" value="${it.v||""}" aria-label="Betrag"><span class="unit">€</span></span>
+    <select id="it_t_${i}" aria-label="Art">${Object.entries(ITEMTYPES).map(([k,l])=>`<option value="${k}"${it.t===k?" selected":""}>${l}</option>`).join("")}</select>
+    <button type="button" class="linkbtn" data-del="${i}">Entfernen</button></div>`).join(""):`<p class="note" style="margin:10px 0">Noch keine Posten eingetragen.</p>`;
+  c.items.forEach((it,i)=>{
+    $(`it_n_${i}`).onchange=e=>{it.n=e.target.value.trim();save();render()};
+    $(`it_v_${i}`).onchange=e=>{it.v=Math.max(0,N(e.target.value)||0);save();render()};
+    $(`it_t_${i}`).onchange=e=>{it.t=e.target.value;save();render()};
+  });
+  $("itemsList").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{c.items.splice(+b.dataset.del,1);save();renderItems();render()});
+}
+$("addItem").onclick=()=>{const c=cfg();c.items=c.items||[];c.items.push({n:"",v:0,t:"umw"});save();renderItems();try{$(`it_n_${c.items.length-1}`).focus()}catch(e){}};
+function renderTpl(){
+  $("tpl").innerHTML=["F","S","N"].map(c=>`<div class="f"><span>${TYPES[c].name}<small>Beginn, Ende, Pause in Minuten</small></span><span class="inp"><input id="tpl${c}s" type="time" value="${state.tpl[c].s}" aria-label="${TYPES[c].name} Beginn"><input id="tpl${c}e" type="time" value="${state.tpl[c].e}" aria-label="${TYPES[c].name} Ende"><input id="tpl${c}b" type="text" data-num="1" min="0" step="5" style="width:64px" value="${state.tpl[c].b}" aria-label="${TYPES[c].name} Pause"></span></div>`).join("");
+  ["F","S","N"].forEach(c=>{
+    $(`tpl${c}s`).onchange=e=>{state.tpl[c].s=e.target.value;save()};
+    $(`tpl${c}e`).onchange=e=>{state.tpl[c].e=e.target.value;save()};
+    $(`tpl${c}b`).onchange=e=>{state.tpl[c].b=Math.max(0,N(e.target.value)||0);save()};
+  });
+}
+$("sTarif").onchange=e=>{const c=cfg();c.tarif=e.target.value;c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Tarif geändert")};
+const numIn=(id,key)=>$(id).onchange=e=>{cfg()[key]=Math.max(0,N(e.target.value)||0);save();renderSettings();render()};
+numIn("wage","wage");numIn("monthly","monthly");numIn("hours","hours");numIn("zuRateIn","zuRate");
+[["tStkl","stkl",1],["tKinder","kinder",1],["tKvz","kvz",1],["tPvK","pvKinder",1],["tKirche","kirche",2],["tKl","kinderlos23",2]].forEach(([id,k,ty])=>$(id).onchange=e=>{const t=taxCfg(cfg());t[k]=ty===2?e.target.value==="1":Math.max(0,N(e.target.value)||0);save();render()});
+$("payMode").onchange=e=>{cfg().payMode=e.target.value;save();renderSettings();render()};
+$("land").onchange=e=>{cfg().land=e.target.value;save();renderSettings();render()};
+
+/* Datensicherung */
+$("bExport").onclick=async()=>{
+  const txt=JSON.stringify({app:"zulo",v:2,data:state});
+  try{await navigator.clipboard.writeText(txt);toast("Sicherung kopiert")}
+  catch(e){const t=$("importTxt");t.value=txt;t.focus();t.select();toast("Text markiert, bitte kopieren")}
+};
+/* Sicherung als Datei: bleibt auf dem Gerät, kein Umweg über die Zwischenablage */
+$("bExportFile").onclick=()=>{
+  try{const blob=new Blob([JSON.stringify({app:"zulo",v:2,data:state})],{type:"application/json"});
+    const a=document.createElement("a"),u=URL.createObjectURL(blob);a.href=u;a.download=`zulo-sicherung-${keyOf(new Date())}.json`;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast("Sicherung gespeichert")}
+  catch(e){toast("Speichern nicht möglich, nutze Kopieren")}};
+$("bImportFile").onclick=()=>$("backupFile").click();
+$("backupFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  if(f.size>5e6)return toast("Die Datei ist zu groß");
+  try{$("importTxt").value=await f.text();$("bImport").click()}catch(err){toast("Datei konnte nicht gelesen werden")}};
+$("bImport").onclick=()=>{
+  try{
+    const o=JSON.parse($("importTxt").value.trim());
+    const d=o&&o.app==="zulo"?o.data:null;
+    if(!d||typeof d.shifts!=="object")throw 0;
+    const ok=Object.entries(d.shifts).filter(([k,v])=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&v&&TYPES[v.t]);
+    if(!ok.length)throw 0;
+    if(d.cfg){
+      if(!PRESETS[d.cfg.tarif])d.cfg.tarif="eigen";
+      state={...freshState(),...d};toast("Sicherung wiederhergestellt");
+    }else{
+      /* Nur Schichten: in den bestehenden Kalender übernehmen */
+      for(const k in state.shifts)if(state.shifts[k].demo)delete state.shifts[k];
+      ok.forEach(([k,v])=>{state.shifts[k]={t:v.t,s:v.s,e:v.e,b:v.b}});
+      toast(`${ok.length} Tage übernommen`);
+      const f=ok.map(x=>x[0]).sort()[0];cur={y:+f.slice(0,4),m:+f.slice(5,7)-1};
+    }
+    save();$("importTxt").value="";renderSettings();render();
+  }catch(e){toast("Das ist keine gültige Zulo Sicherung")}
+};
+$("bReset").onclick=()=>{$("resetConfirm").hidden=false};
+$("bResetNo").onclick=()=>{$("resetConfirm").hidden=true};
+$("bResetYes").onclick=()=>{
+  /* Recht auf Löschung: alle Zulo Einträge auf diesem Gerät entfernen, auch Gewerkschaftsauswahl und alte Versionen */
+  try{Object.keys(localStorage).filter(k=>k.startsWith("zulo")).forEach(k=>localStorage.removeItem(k))}catch(e){}
+  try{sessionStorage.clear()}catch(e){}
+  picked=null;savedNews={};state=freshState();save();$("resetConfirm").hidden=true;showView("cal");render();startOnboarding()};
+
+/* ---------- Einrichtung beim ersten Start ---------- */
+let obPick="gesetz",obMode="month";
+function startOnboarding(){
+  $("obTarif").innerHTML=Object.entries(PRESETS).map(([k,p])=>`<button type="button" data-k="${k}" aria-pressed="${k===obPick}">${p.name}<small>${p.hint}</small></button>`).join("");
+  $("obTarif").querySelectorAll("button").forEach(b=>b.onclick=()=>{obPick=b.dataset.k;$("obTarif").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+  $("obLand").innerHTML=landOpts("BW");
+  $("obMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{obMode=b.dataset.m;$("obMode").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));$("obMonth").hidden=obMode!=="month";$("obHourL").hidden=obMode!=="hour"});
+  openLayer("onboard");
+}
+$("obGo").onclick=()=>{
+  const num=id=>N($(id).value);
+  const w=num("obWage"),mo=num("obMonthly"),h=num("obHours");
+  const fail=t=>{$("obErr").hidden=false;$("obErr").textContent=t};
+  if(obMode==="hour"&&!(w>0))return fail("Bitte deinen Stundenlohn eintragen.");
+  if(obMode==="month"&&!(mo>0))return fail("Bitte dein Monatsgehalt eintragen.");
+  if(obMode==="month"&&!(h>0&&h<=60))return fail("Bitte deine Wochenstunden eintragen.");
+  state.cfg={tarif:obPick,payMode:obMode,wage:w>0?w:0,monthly:mo>0?mo:0,hours:h>0?h:0,land:$("obLand").value,rules:clone(PRESETS[obPick].rules),modified:false,tax:{stkl:+$("obStkl").value,kinder:0,kirche:false,kvz:2.9,kinderlos23:true,pvKinder:0}};
+  save();$("onboard").hidden=true;$("scrim").hidden=true;render();toast("Eingerichtet");
+};
+
+/* ---------- News ---------- */
+const UNIONS={verdi:["ver.di","#e1251b"],igmetall:["IG Metall","#c4161c"],igbce:["IGBCE","#00843d"],evg:["EVG","#7a1f6b"],gdl:["GDL","#1d4f91"],
+  ngg:["NGG","#b5121b"],igbau:["IG BAU","#2f7d32"],gew:["GEW","#d4161c"],gdp:["GdP","#0b5aa6"],dbb:["dbb","#00589c"],mb:["Marburger Bund","#3a7ca5"],vc:["Vereinigung Cockpit","#0f3e6b"],ufo:["UFO","#2a6f97"]};
+const NKEY="zulo.unions";
+let picked=(()=>{try{const v=JSON.parse(localStorage.getItem(NKEY));if(Array.isArray(v))return v}catch(e){}return null})();
+let newsDocs={},newsMeta=null,newsStarted=false,newsState="loading";
+function defaultUnions(){const t=cfg().tarif;return t==="dbevg"?["evg"]:t==="dbgdl"?["gdl"]:t==="tvoed"||t==="tvl"?["verdi","dbb"]:t==="chemie"?["igbce"]:["verdi","igmetall"]}
+function renderUnions(){
+  const sel=picked||defaultUnions();
+  $("unions").innerHTML=Object.entries(UNIONS).map(([k,[n,c]])=>`<button type="button" data-u="${k}" aria-pressed="${sel.includes(k)}"><i style="background:${c}"></i>${n}</button>`).join("");
+  $("unions").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    const cur2=new Set(picked||defaultUnions());const u=b.dataset.u;cur2.has(u)?cur2.delete(u):cur2.add(u);
+    picked=[...cur2];try{localStorage.setItem(NKEY,JSON.stringify(picked))}catch(e){}renderUnions();renderFeed()});
+}
+const initials=n=>n.replace("Vereinigung ","V").replace("Marburger Bund","MB").replace("IG Metall","IGM").replace("IG BAU","BAU").replace("ver.di","ver.di").slice(0,6);
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+/* Bilder: eigene Zeichnungen (SVG) je Thema. Keine Fotos, keine fremden Server, keine Lizenzfragen. */
+const W="#f4efe8",A="#ff8a2a",D="rgb(0 0 0/.28)";
+const ART={
+  bahn:["#4a2560","#1a0f24",`<path d="M96 200 140 152M224 200 180 152" stroke="${W}" stroke-opacity=".35" stroke-width="4"/><path d="M112 186h96M124 172h72M133 161h54" stroke="${W}" stroke-opacity=".2" stroke-width="3"/><rect x="112" y="52" width="96" height="104" rx="22" fill="${W}"/><rect x="124" y="66" width="72" height="38" rx="9" fill="#2a1736"/><rect x="124" y="114" width="72" height="6" rx="3" fill="${D}"/><circle cx="133" cy="136" r="7" fill="${A}"/><circle cx="187" cy="136" r="7" fill="${A}"/><rect x="146" y="40" width="28" height="14" rx="4" fill="${W}" opacity=".7"/>`],
+  flug:["#1d4470","#0a1828",`<path d="M20 170 120 128M40 186 132 146" stroke="${W}" stroke-opacity=".22" stroke-width="5" stroke-linecap="round"/><g transform="rotate(-20 165 110)"><rect x="80" y="99" width="180" height="24" rx="12" fill="${W}"/><path d="M160 104 128 52h20l50 52zM160 118 128 170h20l50-52zM90 102 74 76h14l24 26z" fill="${W}" opacity=".88"/><path d="M236 104h16a10 10 0 0 1 0 14h-16z" fill="#16324f"/><g fill="#16324f"><circle cx="120" cy="111" r="3"/><circle cx="134" cy="111" r="3"/><circle cx="148" cy="111" r="3"/><circle cx="196" cy="111" r="3"/><circle cx="210" cy="111" r="3"/></g></g>`],
+  klinik:["#155450","#071f1d",`<rect x="84" y="76" width="152" height="84" rx="8" fill="${W}"/><rect x="132" y="48" width="56" height="40" rx="8" fill="${W}"/><rect x="153" y="54" width="14" height="28" rx="3" fill="${A}"/><rect x="146" y="61" width="28" height="14" rx="3" fill="${A}"/><g fill="#0f3d3a" opacity=".85"><rect x="98" y="94" width="20" height="16" rx="3"/><rect x="128" y="94" width="20" height="16" rx="3"/><rect x="172" y="94" width="20" height="16" rx="3"/><rect x="202" y="94" width="20" height="16" rx="3"/><rect x="98" y="122" width="20" height="16" rx="3"/><rect x="202" y="122" width="20" height="16" rx="3"/><rect x="144" y="124" width="32" height="36" rx="4"/></g>`],
+  bank:["#33395c","#12142a",`<path d="M84 82 160 44l76 38z" fill="${W}"/><circle cx="160" cy="68" r="8" fill="${A}"/><rect x="84" y="84" width="152" height="10" rx="3" fill="${W}" opacity=".9"/><g fill="${W}" opacity=".85"><rect x="96" y="98" width="14" height="50" rx="3"/><rect x="128" y="98" width="14" height="50" rx="3"/><rect x="178" y="98" width="14" height="50" rx="3"/><rect x="210" y="98" width="14" height="50" rx="3"/></g><rect x="76" y="150" width="168" height="12" rx="3" fill="${W}"/>`],
+  bus:["#5a3a14","#1e1307",`<rect x="62" y="74" width="196" height="76" rx="16" fill="${W}"/><rect x="62" y="74" width="196" height="16" rx="8" fill="${A}"/><g fill="#3d2a12"><rect x="76" y="98" width="34" height="24" rx="5"/><rect x="118" y="98" width="34" height="24" rx="5"/><rect x="160" y="98" width="34" height="24" rx="5"/><rect x="208" y="98" width="36" height="42" rx="5"/></g><circle cx="100" cy="152" r="14" fill="#241608"/><circle cx="100" cy="152" r="6" fill="${W}" opacity=".6"/><circle cx="218" cy="152" r="14" fill="#241608"/><circle cx="218" cy="152" r="6" fill="${W}" opacity=".6"/>`],
+  fabrik:["#34404c","#11161b",`<circle cx="110" cy="44" r="10" fill="${W}" opacity=".18"/><circle cx="124" cy="30" r="14" fill="${W}" opacity=".12"/><rect x="98" y="54" width="18" height="50" fill="${W}" opacity=".8"/><rect x="128" y="66" width="16" height="40" fill="${W}" opacity=".7"/><path d="M72 160V104l40 22v-22l40 22v-22l40 22v-22l40 22v56z" fill="${W}"/><g fill="#2b3036"><rect x="88" y="132" width="16" height="14" rx="2"/><rect x="128" y="132" width="16" height="14" rx="2"/><rect x="168" y="132" width="16" height="14" rx="2"/><rect x="208" y="132" width="16" height="14" rx="2"/></g><g transform="translate(236 70)"><circle r="20" fill="${A}"/><circle r="8" fill="#2b3036"/><g fill="${A}"><rect x="-5" y="-27" width="10" height="10" rx="2"/><rect x="-5" y="17" width="10" height="10" rx="2"/><rect x="-27" y="-5" width="10" height="10" rx="2"/><rect x="17" y="-5" width="10" height="10" rx="2"/></g></g>`],
+  handel:["#5a2a4c","#1f0d1a",`<path d="M80 72h160l-10 22H90z" fill="${A}"/><path d="M100 72l-6 22M124 72l-3 22M148 72v22M172 72l2 22M196 72l4 22M220 72l6 22" stroke="#45203a" stroke-width="4" opacity=".5"/><rect x="88" y="94" width="144" height="64" rx="4" fill="${W}" opacity=".18"/><path d="M128 112h64l-6 48h-52z" fill="${W}"/><path d="M144 114v-10a16 16 0 0 1 32 0v10" fill="none" stroke="${W}" stroke-width="6" stroke-linecap="round"/><circle cx="160" cy="136" r="7" fill="${A}"/>`],
+  gastro:["#55381f","#1d130a",`<path d="M138 40c-8 10 8 16 0 28M160 34c-8 12 8 18 0 32M182 40c-8 10 8 16 0 28" fill="none" stroke="${W}" stroke-opacity=".45" stroke-width="5" stroke-linecap="round"/><path d="M112 80h96v30a40 40 0 0 1-40 40h-16a40 40 0 0 1-40-40z" fill="${W}"/><path d="M208 90h10a16 16 0 0 1 0 32h-14" fill="none" stroke="${W}" stroke-width="9"/><rect x="88" y="152" width="144" height="10" rx="5" fill="${W}" opacity=".7"/><rect x="132" y="98" width="56" height="8" rx="4" fill="${A}"/>`],
+  bau:["#56491a","#1d1806",`<rect x="112" y="40" width="12" height="122" fill="${A}"/><path d="M112 52h12M112 70l12 10M112 90l12 10M112 110l12 10M112 130l12 10" stroke="#3e3412" stroke-width="3"/><rect x="76" y="40" width="168" height="10" fill="${A}"/><rect x="76" y="50" width="22" height="16" fill="${W}" opacity=".8"/><path d="M206 50v40" stroke="${W}" stroke-width="2"/><rect x="190" y="90" width="32" height="20" rx="3" fill="${W}"/><g fill="${W}" opacity=".85"><rect x="148" y="122" width="40" height="40" rx="3"/><rect x="192" y="134" width="40" height="28" rx="3"/></g><rect x="96" y="158" width="44" height="6" fill="${W}" opacity=".6"/>`],
+  schule:["#245038","#0b1c13",`<path d="M160 70c-22-14-50-16-74-10v90c24-6 52-4 74 10z" fill="${W}"/><path d="M160 70c22-14 50-16 74-10v90c-24-6-52-4-74 10z" fill="${W}" opacity=".82"/><path d="M98 80c16-3 36-2 50 5M98 96c16-3 36-2 50 5M98 112c16-3 36-2 50 5M172 85c14-7 34-8 50-5M172 101c14-7 34-8 50-5" stroke="#1d3a2a" stroke-opacity=".5" stroke-width="3" fill="none"/><path d="M160 70v90" stroke="#1d3a2a" stroke-width="3"/><path d="M226 30l14 14-54 54-18 4 4-18z" fill="${A}"/>`],
+  polizei:["#1b3766","#091327",`<path d="M160 36l58 20v40c0 36-26 58-58 70-32-12-58-34-58-70V56z" fill="${W}"/><path d="M160 52l44 15v30c0 27-19 44-44 54-25-10-44-27-44-54V67z" fill="#14284a"/><path d="M160 72l9 19 21 3-15 14 4 21-19-10-19 10 4-21-15-14 21-3z" fill="${A}"/>`],
+  hafen:["#134a60","#061820",`<g><rect x="104" y="80" width="30" height="22" fill="${A}"/><rect x="136" y="80" width="30" height="22" fill="${W}" opacity=".85"/><rect x="168" y="80" width="30" height="22" fill="#5ab0c8"/><rect x="120" y="56" width="30" height="22" fill="${W}" opacity=".7"/><rect x="152" y="56" width="30" height="22" fill="${A}" opacity=".85"/><rect x="204" y="62" width="26" height="40" rx="3" fill="${W}"/><rect x="210" y="68" width="14" height="8" rx="2" fill="#10384a"/></g><path d="M78 104h170l-22 40H96z" fill="${W}"/><rect x="92" y="114" width="140" height="6" fill="#10384a" opacity=".5"/><path d="M40 160q20-10 40 0t40 0 40 0 40 0 40 0 40 0" stroke="${W}" stroke-opacity=".35" stroke-width="5" fill="none"/>`],
+  amt:["#3a2d52","#130e1d",`<rect x="148" y="34" width="24" height="40" rx="4" fill="${W}"/><circle cx="160" cy="52" r="7" fill="${A}"/><path d="M80 92l80-26 80 26z" fill="${W}"/><rect x="80" y="92" width="160" height="66" fill="${W}" opacity=".9"/><g fill="#2e2440"><rect x="94" y="104" width="16" height="22" rx="8"/><rect x="122" y="104" width="16" height="22" rx="8"/><rect x="182" y="104" width="16" height="22" rx="8"/><rect x="210" y="104" width="16" height="22" rx="8"/><rect x="146" y="118" width="28" height="40" rx="14"/></g><rect x="70" y="158" width="180" height="8" rx="3" fill="${W}"/>`],
+  druck:["#3f3b34","#151310",`<rect x="96" y="46" width="128" height="116" rx="6" fill="${W}" opacity=".35" transform="rotate(-6 160 104)"/><rect x="96" y="46" width="128" height="116" rx="6" fill="${W}"/><rect x="108" y="58" width="104" height="14" rx="3" fill="#33302b"/><rect x="108" y="80" width="48" height="40" rx="3" fill="${A}"/><g fill="#33302b" opacity=".45"><rect x="164" y="82" width="48" height="5" rx="2"/><rect x="164" y="94" width="48" height="5" rx="2"/><rect x="164" y="106" width="40" height="5" rx="2"/><rect x="108" y="130" width="104" height="5" rx="2"/><rect x="108" y="142" width="88" height="5" rx="2"/></g>`],
+  Streik:["#5e1c1c","#200808",`<path d="M92 160V60M228 160V60" stroke="${W}" stroke-width="6" stroke-linecap="round"/><path d="M92 64h136v52H92z" fill="${W}"/><rect x="104" y="80" width="76" height="9" rx="4" fill="#4a1717"/><rect x="104" y="96" width="52" height="9" rx="4" fill="#4a1717" opacity=".6"/><circle cx="206" cy="90" r="14" fill="${A}"/><rect x="203" y="80" width="6" height="12" rx="2" fill="#4a1717"/><circle cx="206" cy="97" r="3" fill="#4a1717"/><path d="M60 150l20-10v28l-20-10z" fill="${A}"/><path d="M80 140l26-14v54l-26-14z" fill="${W}" opacity=".85"/>`],
+  Ergebnis:["#175c42","#071d14",`<rect x="100" y="42" width="104" height="126" rx="10" fill="${W}"/><g fill="#123d2c" opacity=".35"><rect x="116" y="60" width="72" height="7" rx="3"/><rect x="116" y="76" width="64" height="7" rx="3"/><rect x="116" y="92" width="70" height="7" rx="3"/></g><path d="M116 140c10-14 16 6 26-6s14 4 22-4" stroke="#123d2c" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="210" cy="132" r="30" fill="${A}"/><path d="M196 132l10 10 20-22" stroke="#123d2c" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`],
+  Verhandlung:["#24406a","#0b1526",`<rect x="64" y="132" width="192" height="12" rx="6" fill="${W}"/><path d="M88 144v24M232 144v24" stroke="${W}" stroke-width="6"/><circle cx="104" cy="104" r="16" fill="${W}" opacity=".9"/><path d="M80 132a24 20 0 0 1 48 0z" fill="${W}" opacity=".9"/><circle cx="216" cy="104" r="16" fill="${W}" opacity=".9"/><path d="M192 132a24 20 0 0 1 48 0z" fill="${W}" opacity=".9"/><path d="M118 44h62a8 8 0 0 1 8 8v24a8 8 0 0 1-8 8h-44l-14 12v-12h-4a8 8 0 0 1-8-8V52a8 8 0 0 1 8-8z" fill="${A}"/><path d="M178 60h28a8 8 0 0 1 8 8v16a8 8 0 0 1-8 8h-2v10l-12-10h-14z" fill="${W}" opacity=".75"/>`],
+  Forderung:["#5c3810","#1f1305",`<path d="M160 36l40 44h-24v80h-32V80h-24z" fill="${A}"/><g fill="${W}"><circle cx="96" cy="80" r="14"/><circle cx="96" cy="80" r="6" fill="#42290d"/><circle cx="226" cy="132" r="14"/><circle cx="226" cy="132" r="6" fill="#42290d"/><path d="M214 66l12 8-110 74-12-8z"/></g>`],
+  Termin:["#52300f","#1b1005",`<rect x="92" y="52" width="136" height="112" rx="14" fill="${W}"/><rect x="92" y="52" width="136" height="30" rx="14" fill="${A}"/><rect x="92" y="68" width="136" height="14" fill="${A}"/><path d="M120 42v22M200 42v22" stroke="${W}" stroke-width="8" stroke-linecap="round"/><g fill="#3a2310" opacity=".3"><rect x="106" y="94" width="18" height="16" rx="3"/><rect x="132" y="94" width="18" height="16" rx="3"/><rect x="158" y="94" width="18" height="16" rx="3"/><rect x="184" y="94" width="18" height="16" rx="3"/><rect x="106" y="118" width="18" height="16" rx="3"/><rect x="132" y="118" width="18" height="16" rx="3"/><rect x="184" y="118" width="18" height="16" rx="3"/><rect x="106" y="142" width="18" height="12" rx="3"/></g><rect x="156" y="116" width="22" height="20" rx="4" fill="${A}"/>`],
+  Info:["#30303a","#101014",`<rect x="104" y="40" width="112" height="128" rx="10" fill="${W}"/><g fill="#26262b" opacity=".35"><rect x="120" y="96" width="80" height="7" rx="3"/><rect x="120" y="112" width="70" height="7" rx="3"/><rect x="120" y="128" width="78" height="7" rx="3"/><rect x="120" y="144" width="56" height="7" rx="3"/></g><circle cx="160" cy="68" r="16" fill="${A}"/><rect x="157" y="64" width="6" height="14" rx="2" fill="#26262b"/><circle cx="160" cy="57" r="3.5" fill="#26262b"/>`]
+};
+/* Thema aus Titel und Text erkennen, spezielle Begriffe zuerst */
+const TOPICS=[["flug",/lufthansa|flug|pilot|cockpit|kabine|airline|aircargo|discover|condor|eurowings|airport/],["bahn",/\bbahn|zug|lokführer|eisenbahn|\bdb\b|gdl|evg|s-bahn/],["hafen",/hafen|häfen|schiff|reederei|container/],["bus",/\bbus|busse|nahverkehr|öpnv|tram|verkehrsbetrieb|sweg/],["klinik",/klinik|krankenhaus|ärzt|arzt|charité|pflege|gesundheit|marburger/],["polizei",/polizei|\bgdp\b/],["schule",/schule|lehrkr|lehrer|kita|erzieher|weiterbildung|hochschule|universit|\bgew\b/],["bank",/bank|banken|sparkasse|versicherung/],["handel",/handel|einzelhandel|großhandel|supermarkt|filial/],["gastro",/gastgewerbe|gastro|hotel|milch|ernährung|lebensmittel|kölln|brauerei|bäcker|nahrung/],["bau",/\bbau|bögl|schreiner|tischler|handwerk|dachdeck|gerüst/],["druck",/druck|ndr|rundfunk|medien|zeitung|verlag/],["amt",/tvöd|tv-l|tv l|länder|kommun|öffentlich|beamt|dbb|bund und/],["fabrik",/metall|elektro|\bvw\b|volkswagen|auto|chemie|industrie|werk|amcor|stahl|pharma/]];
+const topicOf=it=>{if(it.img&&ART[it.img])return it.img;for(const x of [String(it.t||""),String(it.s||"")].map(v=>v.toLowerCase()))for(const [k,re] of TOPICS)if(re.test(x))return k;return ART[it.k]?it.k:"Info"};
+const hsh=s=>{let h=7;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return h};
+let artN=0;
+function artSvg(it,hero){
+  const [c1,c2,body]=ART[topicOf(it)],h=hsh(it.t),id="za"+(++artN),gx=200+(h%90),gy=34+(h>>4)%40;
+  return `<svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient><radialGradient id="${id}r"><stop offset="0" stop-color="${A}" stop-opacity=".55"/><stop offset="1" stop-color="${A}" stop-opacity="0"/></radialGradient></defs><rect width="320" height="200" fill="url(#${id})"/><circle cx="${gx}" cy="${gy}" r="90" fill="url(#${id}r)"/><g fill="#fff" opacity=".12"><circle cx="${30+h%40}" cy="${24+h%30}" r="2"/><circle cx="${70+h%90}" cy="${50+h%20}" r="1.5"/><circle cx="${280-h%50}" cy="${150-h%40}" r="2"/></g><rect y="164" width="320" height="36" fill="${D}"/>${hero?`<g transform="translate(66 6) scale(.6)">${body}</g>`:body}</svg>`;
+}
+/* Merkliste: nur auf diesem Gerät */
+const SKEY="zulo.saved";
+let savedNews=(()=>{try{const v=JSON.parse(localStorage.getItem(SKEY));if(v&&typeof v==="object")return v}catch(e){}return{}})();
+const nid=it=>"n"+hsh(`${it.d}|${it.t}`).toString(36);
+function toggleSave(it){const id=nid(it);if(savedNews[id])delete savedNews[id];else savedNews[id]={d:it.d,k:it.k,t:it.t,s:it.s,url:it.url,src:it.src,img:it.img,us:it.us};
+  try{localStorage.setItem(SKEY,JSON.stringify(savedNews))}catch(e){}toast(savedNews[id]?"Gemerkt":"Nicht mehr gemerkt");renderFeed()}
+const BM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
+const NTABS=[["all","Neueste"],["Streik","Streiks"],["Verhandlung","Verhandlungen"],["Forderung","Forderungen"],["Ergebnis","Ergebnisse"],["Termin","Termine"],["saved","Gemerkt"]];
+let ntab="all",newsList=[];
+var newsOpen=null;
+const ndate=d=>d?new Date(d+"T12:00:00").toLocaleDateString("de-DE",{day:"numeric",month:"short",year:"numeric"}):"";
+function srcHtml(it,withDate){const [n,c]=UNIONS[it.us[0]]||[it.us[0],"#666"];const more=it.us.length>1?` +${it.us.length-1}`:"";
+  return `<i style="background:${c}">${esc(initials(n))}</i><span>${esc(n)}${more}</span>${withDate?`<span class="dt">${ndate(it.d)}</span>`:""}`}
+function renderFeed(){
+  const sel=picked||defaultUnions(),f=$("feed"),hero=$("nhero"),tabs=$("ntabs");
+  artN=0;
+  const bare=t=>{hero.innerHTML="";tabs.innerHTML="";f.innerHTML=`<div class="empty">${t}</div>`};
+  if(newsState==="loading")return bare("News werden geladen");
+  if(newsState==="off")return bare("News sind gerade nicht erreichbar. Deine Schichten und Zuschläge funktionieren trotzdem.");
+  /* Meldungen sammeln, gleiche Meldung bei mehreren Gewerkschaften nur einmal zeigen */
+  const map=new Map();
+  for(const u of sel){const d=newsDocs[u];if(!d||!Array.isArray(d.items))continue;
+    d.items.forEach(it=>{if(!it||!it.t)return;const id=nid(it);if(map.has(id))map.get(id).us.push(u);else map.set(id,{...it,us:[u]})})}
+  const all=[...map.values()].sort((a,b)=>String(b.d).localeCompare(String(a.d)));
+  const saved=Object.values(savedNews).filter(x=>x&&x.t).map(x=>({...x,us:Array.isArray(x.us)&&x.us.length?x.us:["verdi"]})).sort((a,b)=>String(b.d).localeCompare(String(a.d)));
+  const cnt=k=>k==="all"?all.length:k==="saved"?saved.length:all.filter(x=>x.k===k).length;
+  tabs.innerHTML=NTABS.filter(([k])=>k==="all"||k==="saved"||cnt(k)).map(([k,l])=>`<button type="button" data-tab="${k}" aria-pressed="${ntab===k}">${l}${k!=="all"&&cnt(k)?`<small>${cnt(k)}</small>`:""}</button>`).join("");
+  tabs.querySelectorAll("button").forEach(b=>b.onclick=()=>{ntab=b.dataset.tab;renderFeed()});
+  if(!sel.length&&ntab!=="saved"){hero.innerHTML="";f.innerHTML=`<div class="empty">Wähl oben mindestens eine Gewerkschaft aus.</div>`;return}
+  if(!all.length&&ntab!=="saved"){hero.innerHTML="";f.innerHTML=`<div class="empty">Für diese Auswahl gibt es gerade keine aktuellen Meldungen.</div>`;return}
+  /* Top Meldung: die neueste Meldung ohne Terminankündigung, unabhängig vom Filter */
+  const top=all.find(x=>x.k!=="Termin")||all[0];
+  if(top){
+    const sv=!!savedNews[nid(top)];
+    hero.innerHTML=`<article class="nhero" tabindex="0" role="button" aria-label="${esc(top.t)} öffnen"><div class="art">${artSvg(top,true)}</div>
+      <button type="button" class="nsave" aria-pressed="${sv}" aria-label="${sv?"Nicht mehr merken":"Merken"}">${BM}</button>
+      <div class="nhbody"><span class="kind ${esc(top.k)}">${esc(top.k||"Info")}</span><h3>${esc(top.t)}</h3><div class="nsrc">${srcHtml(top,true)}</div></div></article>`;
+    const el=hero.firstElementChild;el.onclick=()=>openNews(top);el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openNews(top)}};
+    el.querySelector(".nsave").onclick=e=>{e.stopPropagation();toggleSave(top)};
+  }else hero.innerHTML="";
+  newsList=ntab==="saved"?saved:all.filter(x=>x!==top&&(ntab==="all"||x.k===ntab));
+  if(!newsList.length){f.innerHTML=`<div class="empty">${ntab==="saved"?"Noch nichts gemerkt. Tipp auf das Lesezeichen bei einer Meldung.":"Keine weiteren Meldungen in diesem Filter."}</div>`;return}
+  f.innerHTML=newsList.slice(0,40).map((it,i)=>{const sv=!!savedNews[nid(it)];
+    return `<article class="nitem" data-i="${i}" tabindex="0" role="button" aria-label="${esc(it.t)} öffnen"><div class="thumb"><div class="art">${artSvg(it)}</div></div>
+      <div class="nb"><div class="nmeta"><span class="k ${esc(it.k)}">${esc(it.k||"Info")}</span><span>·</span><span>${ndate(it.d)}</span></div><h4>${esc(it.t)}</h4><div class="nsrc">${srcHtml(it,false)}</div></div>
+      <button type="button" class="nsave" data-s="${i}" aria-pressed="${sv}" aria-label="${sv?"Nicht mehr merken":"Merken"}">${BM}</button></article>`}).join("");
+  f.querySelectorAll(".nitem").forEach(el=>{const it=newsList[+el.dataset.i];
+    el.onclick=()=>openNews(it);el.onkeydown=e=>{if(e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openNews(it)}};
+    el.querySelector(".nsave").onclick=e=>{e.stopPropagation();toggleSave(it)}});
+  if(newsMeta&&newsMeta.updatedAt)$("feedNote").textContent=`Zuletzt aktualisiert: ${new Date(newsMeta.updatedAt).toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"})}. Meldungen in eigenen Worten zusammengefasst, das Original öffnet sich über den Link. Bilder sind Symbolbilder.`;
+}
+function openNews(it){
+  newsOpen=it;artN=900;
+  $("nsArt").innerHTML=`<div class="art">${artSvg(it)}</div>`;
+  $("nsKind").className="kind "+(it.k||"");$("nsKind").textContent=it.k||"Info";
+  $("nsTitle").textContent=it.t||"";$("nsSum").textContent=it.s||"";
+  $("nsSrc").innerHTML=srcHtml(it,true);
+  const url=/^https:\/\//.test(it.url||"")?it.url:"";
+  $("nsLink").hidden=!url;if(url)$("nsLink").href=url;
+  $("nsCap").textContent=`Symbolbild, von Zulo gezeichnet. Meldung in eigenen Worten zusammengefasst${it.src?`, Quelle: ${it.src}`:""}.`;
+  const upd=()=>{const sv=!!savedNews[nid(it)];$("nsSave").textContent=sv?"Gemerkt ✓":"Merken";$("nsSave").setAttribute("aria-pressed",sv)};upd();
+  $("nsSave").onclick=()=>{toggleSave(it);upd()};
+  openLayer("newsSheet");
+}
+async function startNews(){
+  renderUnions();renderFeed();
+  if(newsStarted)return;newsStarted=true;
+  let db=null;try{db=await window.claude?.use?.("db")}catch(e){}
+  if(!db){
+    /* Eigenständige Web App: News kommen als statische Datei vom selben Server, ohne Daten des Nutzers */
+    try{const r=await fetch("news.json",{cache:"no-cache",credentials:"omit",referrerPolicy:"no-referrer"});if(!r.ok)throw 0;
+      const j=await r.json();newsDocs=j.docs||{};newsMeta=j.meta||null;newsState="ready"}catch(e){newsState="off"}
+    renderFeed();return}
+  db.collection("news").onSnapshot(snap=>{
+    newsDocs={};snap.docs.forEach(d=>{if(d.id==="_meta")newsMeta=d.data();else newsDocs[d.id]=d.data()});
+    newsState="ready";renderFeed();
+  },()=>{newsState="off";renderFeed()});
+}
+
+/* ---------- Lohnabrechnung lokal auslesen ----------
+   Datenschutz: Die Datei wird nur im Arbeitsspeicher dieses Geräts gelesen (pdf.js, vom selben Server, ohne Netzwerkzugriff).
+   Nichts wird hochgeladen. Rohtext, Datei und Passwort werden nach dem Auslesen verworfen.
+   Name, Anschrift, Personalnummer, Steuer ID, SV Nummer und Bankdaten werden bewusst nicht ausgewertet. */
+let slip=null,slipBuf=null,pdfLib=null;
+function slipReset(){slip=null;slipBuf=null;try{$("slipFile").value=""}catch(e){}
+  ["slText","slPwIn"].forEach(id=>{try{$(id).value=""}catch(e){}});
+  ["slPaste","slPw","slErr"].forEach(id=>{try{$(id).hidden=true}catch(e){}});
+  try{$("slRes").innerHTML="";$("slApply").hidden=true}catch(e){}}
+async function loadPdf(){
+  if(pdfLib)return pdfLib;
+  const base=new URL("lib/",document.baseURI).href;
+  /* Worker im Hauptthread laden: keine Web Worker nötig, funktioniert auch in eingebetteten Ansichten */
+  try{if(!globalThis.pdfjsWorker)globalThis.pdfjsWorker=await import(base+"pdf.worker.min.mjs")}catch(e){}
+  const lib=await import(base+"pdf.min.mjs");
+  lib.GlobalWorkerOptions.workerSrc=base+"pdf.worker.min.mjs";
+  return pdfLib=lib;
+}
+/* PDF in Textzeilen zerlegen, Zeilen nach Position sortiert */
+async function pdfLines(buf,password){
+  const lib=await loadPdf();
+  const task=lib.getDocument({data:buf,password:password||undefined,isEvalSupported:false,disableFontFace:true,useSystemFonts:false,disableAutoFetch:true,disableStream:true,stopAtErrors:false});
+  const doc=await task.promise;const out=[];
+  try{
+    for(let p=1;p<=Math.min(doc.numPages,8);p++){
+      const pg=await doc.getPage(p),tc=await pg.getTextContent();
+      const it=tc.items.filter(x=>x.str&&x.str.trim()).map(x=>({s:x.str,x:x.transform[4],y:x.transform[5],h:Math.abs(x.transform[3])||Math.abs(x.height)||8,w:x.width||0}));
+      it.sort((a,b)=>b.y-a.y||a.x-b.x);
+      const rows=[];
+      for(const t of it){const r=rows.find(r=>Math.abs(r.y-t.y)<=Math.max(2,t.h*0.4));if(r)r.a.push(t);else rows.push({y:t.y,a:[t]})}
+      rows.sort((a,b)=>b.y-a.y);
+      for(const r of rows){r.a.sort((a,b)=>a.x-b.x);let line="",end=null;
+        for(const t of r.a){if(end!==null){const gap=t.x-end;line+=gap>t.h*1.2?"   ":gap>t.h*0.15?" ":""}line+=t.s;end=t.x+t.w}
+        out.push(line.replace(/\s+$/,""))}
+      pg.cleanup();
+    }
+  }finally{try{await doc.destroy()}catch(e){}}
+  return out;
+}
+const NUMRE=/-?\d{1,3}(?:\.\d{3})+,\d{1,4}-?|-?\d+,\d{1,4}-?/g;
+const pnum=t=>{let neg=/^-|-$/.test(t);const v=N(t.replace(/-/g,""));return neg?-v:v};
+const SKIP=/krankenkasse|zusatzbeitr|arbeitszeit|steuerklasse|konfession|kinderfreib|^\W*steuer\s*-?\s*kl|steuer\s*-?\s*brutto|sv\s*-?\s*brutto|gesamt\s*-?\s*brutto|^brutto|bruttobez|summe|gesamt|netto|auszahl|überweis|ueberweis|lohnsteuer|solidar|soli\b|kirchenst|^\W*kist|krankenv|^\W*kv\b|kv-?beitr|rentenv|^\W*rv\b|rv-?beitr|arbeitslosenv|^\W*av\b|av-?beitr|pflegev|^\W*pv\b|pv-?beitr|umlage|freibetrag|jahres|kumul|iban|bic\b|bank|konto|steuer-?id|identifikation|sozialvers\w*nummer|vers\.?-?nr|personal|pers\.?-?nr|geburt|anschrift|straße|strasse|urlaub\s*(anspruch|rest|tage)|resturlaub|saldo|zeitkonto|gleitzeit|übertrag|vortrag|bemessung|beitragspfl|steuerpfl|pfändung|abschlag|vorschuss/i;
+const BASE=/monatsentgelt|monatsgehalt|grundentgelt|tabellenentgelt|tarifentgelt|grundgehalt|grundvergütung|grundverguetung|monatslohn|gehalt\b|entgelt\s*(?:fgr|eg|e\s?\d|tarif)/i;
+const KINDS=[["hol",/feiertag|feiert\.|\bft\.?-?zu/i],["eve",/heiligabend|silvester|24\.\s?12|31\.\s?12/i],["sun",/sonntag|sonnt\.|\bso\.?-?zu/i],["sat",/samstag|sonnabend|\bsa\.?-?zu/i],["shift",/dunkle\s*nacht|0\s*(?:-|bis)\s*4\s*uhr|schichtende|schichtbeginn/i],["night",/nacht/i]];
+const ZUL=/zuschl|zulage|zul\.|prämie|praemie|pauschal|entschädigung|entschaedigung|erschwer|bereitschaft|rufbereit|mehrarbeit|überstund|ueberstund|dispo|wechselschicht|schicht|auslöse|ausloese|spesen|verpfleg|fahr|wege|reise|vergütung|verguetung|aufwand|einsatz|funktion|leistung|sonderz|zusatz|ausgleich|stunden|bonus|zuschuss|beihilfe|geld\b|zahlung/i;
+const ONCE=/urlaubsgeld|weihnachtsgeld|jahressonder|sonderzahl|einmal|nachzahl|inflation|zusatzgeld|t-?zug|jubil|abfindung|rückrechn|rueckrechn|differenz/i;
+function slipParse(lines){
+  const R={base:[],zu:[],other:[],ded:[]},seen=new Set();const all=lines.join("\n");
+  const g=(re,i=1)=>{const m=all.match(re);return m?m[i]:null};
+  /* Grunddaten */
+  let st=g(/st(?:euer)?\.?\s*-?\s*kl(?:asse|\.)?\s*(?:\/\s*[\wäöüÄÖÜß]+\.?\s*)?[:.]?\s*(VI|IV|V|I{1,3}|[1-6])\b/i);
+  const comb=all.match(/st[\wäöüÄÖÜß]*\.?\s*-?\s*kl[\wäöüÄÖÜß]*\.?\s*\/\s*(?:kinder[\wäöüÄÖÜß]*|ki\.?\s*fb[\wäöüÄÖÜß]*|kfb)\.?\s*[:.]?\s*(VI|IV|V|I{1,3}|[1-6])\s*\/\s*(\d{1,2}(?:,\d)?)/i);
+  const roman={I:1,II:2,III:3,IV:4,V:5,VI:6};
+  if(comb)st=comb[1];
+  if(st)R.base.push({k:"stkl",l:"Steuerklasse",v:roman[st.toUpperCase()]||+st,show:["I","II","III","IV","V","VI"][(roman[st.toUpperCase()]||+st)-1]});
+  let kf=comb?comb[2]:g(/(?:kinderfreibetr[\wäöüÄÖÜß]*|kinderfr\.?|kfb|kinderfb\.?|kinderfreib\.?)\s*(?:zahl|anzahl)?\s*[:.]?\s*(\d{1,2}(?:,\d)?)/i);
+  if(kf!=null&&N(kf)<=12)R.base.push({k:"kinder",l:"Kinderfreibeträge",v:N(kf),show:fmt(N(kf),1)});
+  const konf=g(/(?:konf(?:ession)?|religion|rel\.|kist[\s.-]*merkmal)\s*[:.]?\s*([a-z]{2}|--|-|keine|ohne)\b/i);
+  const kistLine=lines.find(l=>/kirchenst/i.test(l)&&(l.match(NUMRE)||[]).some(n=>Math.abs(pnum(n))>0.004));
+  if(konf!=null||kistLine){const yes=kistLine?true:!/^(--|-|keine|ohne|vd)$/i.test(konf);R.base.push({k:"kirche",l:"Kirchensteuer",v:yes,show:yes?"ja":"nein"})}
+  const kvz=g(/(?:zusatzbeitr[\wäöüÄÖÜß]*|zus\.?\s*-?\s*beitr[\wäöüÄÖÜß]*|kv\s*-?\s*zusatz[\wäöüÄÖÜß]*|kassenindiv[\wäöüÄÖÜß]*)\D{0,20}?(\d,\d{1,2})\s*%?/i);
+  if(kvz&&N(kvz)<6)R.base.push({k:"kvz",l:"Zusatzbeitrag Krankenkasse",v:N(kvz),show:fmt(N(kvz))+" %"});
+  const wh=g(/(?:wochenarbeitszeit|wochenstd[\wäöüÄÖÜß]*|wöch[\wäöüÄÖÜß]*\.?\s*arbeitszeit|woech[\wäöüÄÖÜß]*\.?\s*arbeitszeit|std\.?\s*\/\s*woche|az\s*\/\s*woche|regelm[\wäöüÄÖÜß]*\.?\s*(?:wöch[\wäöüÄÖÜß]*\.?\s*)?az|ira\s*az)\D{0,15}?(\d{1,2}(?:,\d{1,2})?)/i);
+  if(wh&&N(wh)>=5&&N(wh)<=60)R.base.push({k:"hours",l:"Wochenstunden",v:N(wh),show:fmt(N(wh),1)+" Std"});
+  /* Zeilen mit Beträgen */
+  for(const raw of lines){
+    const line=raw.replace(/\s+/g," ").trim();if(!line)continue;
+    const nums=line.match(NUMRE);if(!nums)continue;
+    let label=line.slice(0,line.search(NUMRE)).replace(/^[A-Z]?\d{2,5}[A-Z]?\s+/,"").replace(/^[A-Z]{1,2}\d{2,4}\s+/,"").replace(/[\s:.*/]+$/,"").trim();
+    if(label.length<3||!/[a-zäöü]{3}/i.test(label))continue;
+    if(SKIP.test(label))continue;
+    const vals=nums.map(pnum),amt=vals[vals.length-1];if(!isFinite(amt)||amt===0)continue;
+    {const last=nums[nums.length-1],after=line.slice(line.lastIndexOf(last)+last.length);if(/^\s*(%|std|h\b|stunden|tage|kinder)/i.test(after))continue}
+    const pct=(line.match(/(\d{1,3}(?:,\d{1,2})?)\s*%/)||[])[1];
+    /* Menge x Satz = Betrag suchen */
+    let q=null,r=null;
+    const pre=vals.slice(0,-1).map(Math.abs);
+    for(let i=0;i<pre.length&&q==null;i++)for(let j=0;j<pre.length;j++){if(i===j)continue;if(Math.abs(pre[i]*pre[j]-Math.abs(amt))<=Math.max(0.03,Math.abs(amt)*0.006)){q=pre[i];r=pre[j];break}}
+    if(q!=null&&i_order(nums,q,r))[q,r]=[r,q];
+    const key=label.toLowerCase();if(seen.has(key))continue;seen.add(key);
+    if(amt<0){
+      const t=/rad|bike|leasing|jobrad|fahrrad|e-?bike/i.test(label)?"umw":/vwl|vermögensw|vermoegensw/i.test(label)?"netAbz":"netAbz";
+      R.ded.push({l:label,a:-amt,t,on:t==="umw"});continue}
+    if(BASE.test(label)&&!ZUL.test(label)&&amt>300){if(!R.base.some(b=>b.k==="monthly"))R.base.push({k:"monthly",l:"Monatsgehalt brutto",v:amt,show:eur(amt),src:label});continue}
+    if(/stundenlohn|std\.?\s*-?\s*lohn|stundenentgelt|lohn\s*je\s*std/i.test(label)&&amt<100){R.base.push({k:"wage",l:"Stundenlohn",v:amt,show:eur(amt),src:label});continue}
+    const kind=(KINDS.find(([k,re])=>re.test(label))||[])[0];
+    if(kind&&(r!=null||pct)){
+      const rate=r!=null?r:null;
+      if(kind==="shift")R.zu.push({kind,l:label,a:amt,q,r:rate,on:rate!=null&&rate<60,end:!/beginn/i.test(label)});
+      else R.zu.push({kind,l:label,a:amt,q,r:rate,pct:pct?N(pct):null,on:(rate!=null&&rate>0.05&&rate<60)||!!pct});
+      continue}
+    if(kind||ZUL.test(label)){const once=ONCE.test(label);R.other.push({l:label,a:amt,q,r,once,act:(q!=null||once)?"skip":"plus",kind});continue}
+  }
+  return R;
+}
+/* Bei Menge x Satz: steht die Menge vor dem Satz? Erste Zahl in der Zeile ist meist die Menge */
+function i_order(nums,q,r){const iq=nums.findIndex(n=>Math.abs(Math.abs(pnum(n))-q)<1e-9),ir=nums.findIndex(n=>Math.abs(Math.abs(pnum(n))-r)<1e-9);return iq>ir&&ir>=0}
+const ZLBL={night:"Nacht",sun:"Sonntag",hol:"Feiertag",sat:"Samstag",eve:"24. und 31.12.",shift:"Je Schicht 0 bis 4 Uhr"};
+function slipRender(){
+  const R=slip,c=cfg(),t=taxCfg(c);let h="";
+  const cur={stkl:["I","II","III","IV","V","VI"][(+t.stkl||1)-1],kinder:fmt(+t.kinder||0,1),kirche:t.kirche?"ja":"nein",kvz:fmt(+t.kvz||0)+" %",hours:fmt(+c.hours||0,1)+" Std",monthly:eur(+c.monthly||0),wage:eur(+c.wage||0)};
+  const n=R.base.length+R.zu.length+R.other.length+R.ded.length;
+  if(!n){$("slRes").innerHTML=`<div class="empty">Zulo hat in dieser Abrechnung keine Werte erkannt. Ist sie eingescannt oder ein Foto? Dann enthält sie keinen lesbaren Text. Probier die PDF aus deinem Mitarbeiterportal oder trag die Werte unten von Hand ein.</div>`;$("slApply").hidden=true;return}
+  if(R.base.length)h+=`<div class="sec">Grunddaten</div><div class="found">`+R.base.map((b,i)=>`<label class="fi"><input type="checkbox" data-g="base" data-i="${i}" checked><span><b>${esc(b.l)}: ${esc(b.show)}</b><small>Bisher in Zulo: ${esc(cur[b.k]??"")}${b.src?` · Zeile „${esc(b.src)}“`:""}</small></span></label>`).join("")+`</div>`;
+  if(R.zu.length)h+=`<div class="sec">Zuschläge mit Satz</div><div class="found">`+R.zu.map((z,i)=>{
+    const how=z.r!=null?`${fmt(z.r)} € je ${z.kind==="shift"?"Schicht":"Stunde"}`:`${fmt(z.pct,0)} %`;
+    return `<label class="fi${z.on?"":" off"}"><input type="checkbox" data-g="zu" data-i="${i}"${z.on?" checked":""}><span><b>${esc(ZLBL[z.kind])}: ${how}</b><small>${esc(z.l)}${z.q!=null?` · ${fmt(z.q)} × ${fmt(z.r)}`:""} = ${eur(z.a)}</small></span></label>`}).join("")+`</div>`;
+  if(R.other.length)h+=`<div class="sec">Weitere Zulagen auf deiner Abrechnung</div><div class="found">`+R.other.map((o,i)=>`<div class="fi"><span></span><span><b>${esc(o.l)}: ${eur(o.a)}</b><small>${o.q!=null?`${fmt(o.q)} × ${fmt(o.r)} € · `:""}${o.once?"Sieht nach einer Einmalzahlung aus":o.q!=null?"Ändert sich mit deinen Stunden, hier zur Info":"Sieht nach einem festen Monatsbetrag aus"}</small></span><select data-g="other" data-i="${i}" aria-label="${esc(o.l)} übernehmen als"><option value="plus"${o.act==="plus"?" selected":""}>Jeden Monat als festes Brutto übernehmen</option><option value="skip"${o.act==="skip"?" selected":""}>Nur merken, nicht übernehmen</option></select></div>`).join("")+`</div>`;
+  if(R.ded.length)h+=`<div class="sec">Abzüge</div><div class="found">`+R.ded.map((d,i)=>`<div class="fi"><span></span><span><b>${esc(d.l)}: −${eur(d.a)}</b></span><select data-g="ded" data-i="${i}" aria-label="${esc(d.l)} übernehmen als"><option value="skip"${!d.on?" selected":""}>Nicht übernehmen</option><option value="umw"${d.on&&d.t==="umw"?" selected":""}>Gehaltsumwandlung vor Steuer, z. B. Rad</option><option value="netAbz"${d.on&&d.t==="netAbz"?" selected":""}>Abzug vom Netto</option></select></div>`).join("")+`</div>`;
+  h+=`<p class="note" style="margin:0 2px 12px">Zuschläge stehen oft erst auf der Abrechnung des Folgemonats. Prüf die Werte kurz, bevor du sie übernimmst. Die Zeitfenster für Nacht und Samstag stehen nicht auf der Abrechnung, die prüfst du unter Zuschläge.</p>`;
+  $("slRes").innerHTML=h;$("slApply").hidden=false;
+  $("slRes").querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>cb.closest(".fi").classList.toggle("off",!cb.checked));
+}
+function slipApply(){
+  if(!slip)return;const c=cfg(),t=taxCfg(c),R=slip,box=$("slRes");let nR=0,nI=0,nB=0;
+  const on=(g,i)=>{const el=box.querySelector(`[data-g="${g}"][data-i="${i}"]`);return el?(el.type==="checkbox"?el.checked:el.value):null};
+  R.base.forEach((b,i)=>{if(!on("base",i))return;nB++;
+    if(b.k==="monthly"){c.monthly=b.v;c.payMode="month"}else if(b.k==="hours")c.hours=b.v;
+    else if(b.k==="wage"){c.wage=b.v;if(!(+c.monthly>0))c.payMode="hour"}
+    else if(b.k==="kirche")t.kirche=!!b.v;else t[b.k]=b.v});
+  R.zu.forEach((z,i)=>{if(!on("zu",i))return;nR++;const Rr=c.rules;
+    if(z.kind==="shift"){if(z.end)Rr.endEarly=z.r;else Rr.startEarly=z.r}
+    else if(z.r!=null){Rr[z.kind].v=z.r;Rr[z.kind].u="eur"}else{Rr[z.kind].v=z.pct;Rr[z.kind].u="pct"}
+    if(Rr[z.kind]&&Rr[z.kind].from!=null&&Rr[z.kind].to!=null&&Rr[z.kind].from===Rr[z.kind].to){Rr[z.kind].from="00:00";Rr[z.kind].to="23:59"}});
+  if(nR)c.modified=true;
+  c.items=c.items||[];
+  const addItem=(n,v,ty)=>{const ex=c.items.find(x=>x.n.toLowerCase()===n.toLowerCase());if(ex){ex.v=v;ex.t=ty}else c.items.push({n,v,t:ty});nI++};
+  R.other.forEach((o,i)=>{if(on("other",i)==="plus")addItem(o.l,Math.round(o.a*100)/100,"plus")});
+  R.ded.forEach((d,i)=>{const a=on("ded",i);if(a&&a!=="skip")addItem(d.l,Math.round(d.a*100)/100,a)});
+  state.cfg=c;save();closeSheet();renderSettings();render();
+  toast(`Übernommen: ${nB+nR+nI} Werte`);
+}
+async function slipRun(getLines){
+  $("slErr").hidden=true;$("slRes").innerHTML=`<div class="empty">Abrechnung wird auf deinem Gerät gelesen …</div>`;
+  try{const lines=await getLines();slip=slipParse(lines);slipRender()}
+  catch(e){
+    if(e&&e.name==="PasswordException"){$("slRes").innerHTML="";$("slPw").hidden=false;if(e.code===2){$("slErr").hidden=false;$("slErr").textContent="Das Passwort stimmt nicht."}setTimeout(()=>{try{$("slPwIn").focus()}catch(x){}},200);return}
+    $("slRes").innerHTML="";$("slErr").hidden=false;
+    $("slErr").textContent=e&&e.name==="InvalidPDFException"?"Das ist keine lesbare PDF Datei.":"Die Abrechnung konnte nicht gelesen werden. Probier stattdessen Text einfügen.";
+  }finally{if($("slPw").hidden)slipBuf=null}
+}
+function slipOpen(meta){slipReset();$("slMeta").textContent=meta;openLayer("slipSheet")}
+$("slipPick").onclick=()=>$("slipFile").click();
+$("slipFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
+  if(f.size>15e6){toast("Die Datei ist zu groß");e.target.value="";return}
+  slipOpen("Wird nur auf diesem Gerät gelesen");
+  try{slipBuf=new Uint8Array(await f.arrayBuffer())}catch(err){$("slErr").hidden=false;$("slErr").textContent="Datei konnte nicht geöffnet werden.";return}finally{e.target.value=""}
+  const run=pw=>slipRun(()=>pdfLines(slipBuf.slice(),pw));
+  $("slPwGo").onclick=()=>{const pw=$("slPwIn").value;$("slPwIn").value="";$("slPw").hidden=true;run(pw)};
+  run();
+};
+$("slPwIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("slPwGo").click()}});
+$("slipPaste").onclick=()=>{slipOpen("Wird nur auf diesem Gerät gelesen");$("slPaste").hidden=false;setTimeout(()=>{try{$("slText").focus()}catch(e){}},200)};
+$("slTextGo").onclick=()=>{const txt=$("slText").value;$("slText").value="";$("slPaste").hidden=true;slipRun(async()=>txt.split(/\r?\n/))};
+$("slCancel").onclick=closeSheet;$("slApply").onclick=slipApply;
+
+/* ---------- Uhrzeit eintippen statt scrollen ---------- */
+/* "1445" -> 14:45, "945" -> 09:45, "14" -> 14:00, "14.45" -> 14:45; null = ungültig */
+function normTime(v){
+  v=String(v||"").trim().replace(/[.,h ]/g,":");if(!v)return "";
+  let m=v.match(/^(\d{1,2}):(\d{1,2})$/);
+  if(!m){const d=v.replace(/\D/g,"");if(!d||d.length>4)return null;m=d.length<=2?[0,d,"0"]:[0,d.slice(0,-2),d.slice(-2)]}
+  let h=+m[1],mi=+m[2];if(h===24&&mi===0)h=0;
+  if(h>23||mi>59)return null;
+  return pad(h)+":"+pad(mi);
+}
+const CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+function enhanceTime(el){
+  if(el.dataset.enh)return;el.dataset.enh="1";
+  el.type="text";el.inputMode="numeric";el.placeholder="hh:mm";el.maxLength=5;el.autocomplete="off";
+  const w=document.createElement("span");w.className="tfield";el.parentNode.insertBefore(w,el);w.appendChild(el);
+  const pk=document.createElement("span");pk.className="clk";pk.innerHTML=CLOCK;
+  const ti=document.createElement("input");ti.type="time";ti.tabIndex=-1;ti.setAttribute("aria-label","Uhrzeit auswählen");pk.appendChild(ti);w.appendChild(pk);
+  /* echte change Events vor allen anderen Handlern normalisieren */
+  w.addEventListener("change",e=>{if(e.target!==el||!e.isTrusted)return;const n=normTime(el.value);if(n===null){el.classList.add("bad");e.stopPropagation();return}el.classList.remove("bad");el.value=n},true);
+  const fire=()=>{el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))};
+  ti.addEventListener("focus",()=>{ti.value=normTime(el.value)||""});
+  ti.addEventListener("pointerdown",()=>{ti.value=normTime(el.value)||""});
+  const fromPicker=()=>{if(ti.value&&ti.value!==el.value){el.value=ti.value;el.classList.remove("bad");fire()}};
+  ti.addEventListener("input",fromPicker);ti.addEventListener("change",fromPicker);
+  el.addEventListener("input",e=>{if(!e.isTrusted)return;const d=el.value.replace(/[^\d:.,]/g,"");el.value=/^\d{4}$/.test(d)?d.slice(0,2)+":"+d.slice(2):d});
+  el.addEventListener("focus",()=>{try{el.select()}catch(e){}});
+  el.addEventListener("blur",()=>{const n=normTime(el.value);if(n===null){el.classList.add("bad");return}el.classList.remove("bad");if(n!==el.value){el.value=n;fire()}});
+}
+function enhanceAll(){document.querySelectorAll('input[type="time"]').forEach(el=>{if(!el.closest(".clk"))enhanceTime(el)});
+  /* Zahlenfelder: Text mit Zahlentastatur, damit Komma auf Android und iOS funktioniert */
+  document.querySelectorAll("input[data-num]").forEach(el=>{
+    if(!el.inputMode)el.inputMode=(el.step&&!String(el.step).includes("."))?"numeric":"decimal";
+    el.autocomplete="off";el.setAttribute("autocorrect","off");el.spellcheck=false;
+    if(/^-?\d+\.\d+$/.test(el.value))el.value=el.value.replace(".",",");
+    if(!el.dataset.enh){el.dataset.enh="1";el.addEventListener("focus",()=>{try{el.select()}catch(e){}})}
+  })}
+enhanceAll();
+if(!canHist)$("fileBackup").hidden=true;
+/* Eigenständige Web App: offline nutzbar machen. In eingebetteten Ansichten (z. B. Claude) wird nichts registriert. */
+if(canHist&&!window.claude&&"serviceWorker" in navigator&&location.protocol==="https:"){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+
+/* Tastatur: automatisch weiter und zu, Enter speichert, Tippen daneben schließt */
+const fullTime=v=>/^\d{2}:\d{2}$/.test(v);
+$("tStart").setAttribute("enterkeyhint","next");$("tEnd").setAttribute("enterkeyhint","next");
+$("tStart").addEventListener("input",e=>{if(e.isTrusted&&fullTime($("tStart").value))$("tEnd").focus()});
+$("tEnd").addEventListener("input",e=>{if(e.isTrusted&&fullTime($("tEnd").value))$("tEnd").blur()});
+const trySave=()=>{document.activeElement&&document.activeElement.blur();setTimeout(()=>{if(!$("bSave").disabled)$("bSave").click()},30)};
+$("tStart").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("tEnd").focus()}});
+$("tEnd").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("tBreak").focus()}});
+$("tBreak").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();trySave()}});
+$("bSaveTop").onclick=trySave;
+$("sheet").addEventListener("pointerdown",e=>{if(!e.target.closest("input,select,textarea,label,.clk")&&document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))document.activeElement.blur()});
+
+render();
+if(!state.cfg)startOnboarding();
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+{
+ "docs": {
+  "dbb": {
+   "items": [
+    {
+     "d": "2027-03-16",
+     "k": "Termin",
+     "s": "Der aktuelle TVöD läuft bis 31.03.2027. Forderungen am 16. März 2027, erste Verhandlung am 9. April 2027 in Potsdam.",
+     "src": "oeffentlicher-dienst-news.de",
+     "t": "Nächste TVöD Runde für Bund und Kommunen",
+     "url": "https://oeffentlicher-dienst-news.de/tvoed/tarifverhandlungen-2027/"
+    },
+    {
+     "d": "2026-02-27",
+     "k": "Ergebnis",
+     "s": "Zwei Erhöhungen um je 2,5 % zum 1. August 2026 und 2027 sowie 700 € Einmalzahlung, Laufzeit 24 Monate.",
+     "src": "dbb",
+     "t": "GDL und Deutsche Bahn einigen sich",
+     "url": "https://www.dbb.de/artikel/gdl-und-db-ag-erzielen-tarifeinigung-nachhaltige-verbesserungen-fuer-den-eisenbahnbetrieb.html"
+    },
+    {
+     "d": "2026-02-14",
+     "k": "Ergebnis",
+     "s": "Plus 2,8 % (mindestens 100 €) ab April 2026, 2,0 % ab März 2027 und 1,0 % ab Januar 2028. Laufzeit bis 31.01.2028.",
+     "src": "oeffentlicher-dienst-news.de",
+     "t": "TV-L: Einigung für die Länder",
+     "url": "https://oeffentlicher-dienst-news.de/tvoed/tarifverhandlungen-2027/"
+    }
+   ]
+  },
+  "evg": {
+   "items": [
+    {
+     "d": "2026-07-27",
+     "k": "Ergebnis",
+     "s": "Die zweite Stufe des Abschlusses greift, Azubis und dual Studierende bekommen 50 € mehr. Schichtarbeitende erhalten im Dezember 2026 das EVG Zusatzgeld von 2,6 %. Der Vertrag läuft bis 31.12.2027.",
+     "src": "EVG",
+     "t": "Deutsche Bahn: 2,5 % mehr ab Juli 2026",
+     "url": "https://www.evg-online.org/aktuelles/artikel/25-prozent-mehr-gehalt-ab-juli-2026/"
+    }
+   ]
+  },
+  "gdl": {
+   "items": [
+    {
+     "d": "2026-02-27",
+     "k": "Ergebnis",
+     "s": "Zwei Erhöhungen um je 2,5 % zum 1. August 2026 und 2027, dazu 700 € Einmalzahlung (Azubis 350 €). Laufzeit 24 Monate, Zulagen werden verbessert.",
+     "src": "dbb",
+     "t": "GDL und Deutsche Bahn einigen sich",
+     "url": "https://www.dbb.de/artikel/gdl-und-db-ag-erzielen-tarifeinigung-nachhaltige-verbesserungen-fuer-den-eisenbahnbetrieb.html"
+    }
+   ]
+  },
+  "gdp": {
+   "items": [
+    {
+     "d": "2026-02-14",
+     "k": "Ergebnis",
+     "s": "Gilt für Tarifbeschäftigte der Polizei in den Ländern: plus 2,8 % (mindestens 100 €) ab April 2026, 2,0 % ab März 2027, 1,0 % ab Januar 2028.",
+     "src": "oeffentlicher-dienst-news.de",
+     "t": "TV-L: Einigung für die Länder",
+     "url": "https://oeffentlicher-dienst-news.de/tvoed/tarifverhandlungen-2027/"
+    }
+   ]
+  },
+  "gew": {
+   "items": [
+    {
+     "d": "2026-09-08",
+     "k": "Info",
+     "s": "Die Arbeitgeber stimmten dem Kompromiss nicht zu. Betroffen sind rund 45.000 Beschäftigte in der öffentlich geförderten Weiterbildung.",
+     "src": "DGB",
+     "t": "Weiterbildung: Branchentarif gescheitert",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/branchentarifvertrag-fuer-weiterbildung-gescheitert/"
+    },
+    {
+     "d": "2026-02-14",
+     "k": "Ergebnis",
+     "s": "Plus 2,8 % (mindestens 100 €) ab April 2026, 2,0 % ab März 2027 und 1,0 % ab Januar 2028. Laufzeit bis 31.01.2028.",
+     "src": "oeffentlicher-dienst-news.de",
+     "t": "TV-L: Einigung für die Länder",
+     "url": "https://oeffentlicher-dienst-news.de/tvoed/tarifverhandlungen-2027/"
+    }
+   ]
+  },
+  "igbau": {
+   "items": [
+    {
+     "d": "2026-10-19",
+     "k": "Forderung",
+     "s": "Die IG BAU fordert 300 € mehr bei 12 Monaten Laufzeit, rückwirkend ab Oktober 2026. Die erste Runde war am 21. Oktober.",
+     "src": "DGB",
+     "t": "Max Bögl: 300 € mehr gefordert",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/ig-bau-fordert-300-euro-mehr-bei-max-boegl/"
+    }
+   ]
+  },
+  "igbce": {
+   "items": [
+    {
+     "d": "2026-03-25",
+     "k": "Ergebnis",
+     "s": "2026 keine Erhöhung, dann plus 2,1 % ab Januar 2027 und 2,4 % ab Januar 2028. Dazu 300 € Beschäftigungssicherung pro Jahr, Laufzeit bis 31.05.2028.",
+     "src": "fhm-online.de",
+     "t": "Chemie: Abschluss für 585.000 Beschäftigte",
+     "url": "https://fhm-online.de/news/igbce-tarifrunde-2026/"
+    }
+   ]
+  },
+  "igmetall": {
+   "items": [
+    {
+     "d": "2026-10-27",
+     "k": "Termin",
+     "s": "Am 27. Oktober geht die Tarifrunde weiter. Die Friedenspflicht endet am 31.10.2026, danach sind Warnstreiks möglich.",
+     "src": "IG Metall",
+     "t": "Metall und Elektro: zweite Verhandlungsrunde",
+     "url": "https://www.igmetall.de/tarif/tarifrunden/metall-und-elektro"
+    },
+    {
+     "d": "2026-10-16",
+     "k": "Verhandlung",
+     "s": "Die IG Metall fordert 5 % bei 12 Monaten Laufzeit. Die Arbeitgeber lehnten ab und legten kein Angebot vor.",
+     "src": "DGB",
+     "t": "Metall und Elektro: erste Runde ohne Annäherung",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/tarifrunde-metall-und-elektro-ohne-annaeherung/"
+    },
+    {
+     "d": "2026-10-16",
+     "k": "Ergebnis",
+     "s": "Plus 2,3 % ab 1. November 2026 und weitere 2,5 % ein Jahr später. Der Vertrag läuft bis Ende Oktober 2028.",
+     "src": "DGB",
+     "t": "Schreinerhandwerk Baden Württemberg",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/tarifeinigung-im-schreinerhandwerk-baden-wuerttemberg/"
+    },
+    {
+     "d": "2026-10-01",
+     "k": "Streik",
+     "s": "Betroffen sind unter anderem Entgelt, Zulagen und Ausbildung. Die IG Metall fordert 5 %, ab Januar 2027 wären Streiks möglich.",
+     "src": "DGB",
+     "t": "VW kündigt zahlreiche Tarifverträge",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/vw-kuendigt-zahlreiche-tarifvertraege/"
+    },
+    {
+     "d": "2026-09-23",
+     "k": "Forderung",
+     "s": "Neben 5 % mehr Geld will die IG Metall Arbeitsplätze und Standorte absichern und eine tarifliche Gewinnbeteiligung durchsetzen.",
+     "src": "DGB",
+     "t": "5 % mehr Geld und sichere Jobs",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/ig-metall-fordert-5-prozent-mehr-geld-und-sichere-jobs/"
+    },
+    {
+     "d": "2026-09-17",
+     "k": "Ergebnis",
+     "s": "Die Entgelte steigen ab 2027 in drei Stufen, die Ausbildungsvergütung 2026 und 2028 um je 50 €.",
+     "src": "DGB",
+     "t": "Schreiner und Tischler Hessen und Rheinland Pfalz",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/mehr-geld-fuer-schreiner-und-tischler-in-hessen-und-rheinland-pfalz/"
+    }
+   ]
+  },
+  "mb": {
+   "items": [
+    {
+     "d": "2025-02-05",
+     "k": "Ergebnis",
+     "s": "Plus 4 % rückwirkend ab Juli 2024, 2 % ab August 2025 und 2 % ab Juni 2026. Schicht und Wechselschichtregeln wurden teilweise reformiert.",
+     "src": "Ärzteblatt",
+     "t": "Kommunale Kliniken: Ärzte stimmen Tarifvertrag zu",
+     "url": "https://www.aerzteblatt.de/nachrichten/157379/Votum-fuer-Tarifvertrag-Aerztestreiks-an-kommunalen-Krankenhaeusern-abgewendet"
+    }
+   ]
+  },
+  "ngg": {
+   "items": [
+    {
+     "d": "2026-10-22",
+     "k": "Ergebnis",
+     "s": "Die Löhne steigen um je 3,5 % ab 1. Oktober 2026, 1. Juli 2027 und 1. Juli 2028. Fachkräfte nach der Ausbildung kommen bis 2028 auf 3.007 € brutto, Azubis erhalten 2027 und 2028 je 50 € mehr.",
+     "src": "DGB Tarifmeldungen",
+     "t": "Gastgewerbe Brandenburg: 10,5 % in drei Stufen",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/mehr-geld-fuer-beschaeftigte-im-brandenburger-gastgewerbe/"
+    },
+    {
+     "d": "2026-09-15",
+     "k": "Ergebnis",
+     "s": "Löhne und Gehälter steigen um 5 %, die Ausbildungsvergütung wird erhöht und Fahrtkosten zur Berufsschule neu geregelt.",
+     "src": "DGB",
+     "t": "Milchindustrie Ost: 5 % mehr",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/tarifabschluss-bringt-5-prozent-mehr-lohn-in-der-milchindustrie-ost/"
+    },
+    {
+     "d": "2026-09-07",
+     "k": "Streik",
+     "s": "Über 160 Beschäftigte in Elmshorn legten die Arbeit nieder. Die NGG fordert 5,8 % mehr Lohn bei einem Jahr Laufzeit.",
+     "src": "DGB",
+     "t": "Erster Warnstreik bei Kölln",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/gewerkschaft-ruft-bei-koelln-zum-warnstreik-auf/"
+    },
+    {
+     "d": "2026-08-27",
+     "k": "Ergebnis",
+     "s": "Für rund 2.300 Beschäftigte sollen die Lohnunterschiede zu Niedersachsen und Bremen bis 2032 abgebaut werden.",
+     "src": "DGB",
+     "t": "Ernährungswirtschaft Sachsen Anhalt",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/tarifabschluss-in-der-ernaehrungswirtschaft-sachsen-anhalts/"
+    }
+   ]
+  },
+  "ufo": {
+   "items": []
+  },
+  "vc": {
+   "items": []
+  },
+  "verdi": {
+   "items": [
+    {
+     "d": "2027-03-16",
+     "k": "Termin",
+     "s": "Der aktuelle TVöD läuft bis 31.03.2027. Die Forderungen werden am 16. März 2027 vorgestellt, die erste Verhandlungsrunde ist am 9. April 2027 in Potsdam.",
+     "src": "oeffentlicher-dienst-news.de",
+     "t": "Nächste TVöD Runde für Bund und Kommunen",
+     "url": "https://oeffentlicher-dienst-news.de/tvoed/tarifverhandlungen-2027/"
+    },
+    {
+     "d": "2026-11-02",
+     "k": "Termin",
+     "s": "Die zweite Runde für die privaten Banken findet am 2. November 2026 in Frankfurt am Main statt.",
+     "src": "DGB Tarifmeldungen",
+     "t": "Private Banken: zweite Verhandlungsrunde",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/verdi-ruft-zu-bundesweiten-warnstreiks-bei-privaten-banken-auf/"
+    },
+    {
+     "d": "2026-10-23",
+     "k": "Streik",
+     "s": "ver.di ruft die rund 150.000 Beschäftigten privater Banken ab der kommenden Woche zu Warnstreiks auf. Gefordert sind 6 % mehr Gehalt, 300 € mehr für Nachwuchskräfte und Regeln zum KI Einsatz bei 12 Monaten Laufzeit.",
+     "src": "DGB Tarifmeldungen",
+     "t": "Private Banken: bundesweite Warnstreiks",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/verdi-ruft-zu-bundesweiten-warnstreiks-bei-privaten-banken-auf/"
+    },
+    {
+     "d": "2026-10-23",
+     "k": "Streik",
+     "s": "Am 23. Oktober streikten rund 500 Beschäftigte der SWEG Busbetriebe in Baden Württemberg, unter anderem in Lahr, Offenburg und Kehl, für Kündigungsschutz bei Neuausschreibungen. In der bundesweiten Runde liegt das Angebot bei 3 % ab Dezember 2026 und 2 % ab Januar 2028, nächster Termin ist der 16. November.",
+     "src": "ver.di Baden-Württemberg",
+     "t": "SWEG Busse: vierter Warnstreik",
+     "url": "https://bawue.verdi.de/presse/pressemitteilungen/++co++042722ca-cbd8-11f1-82ef-37c2471e7e4c"
+    },
+    {
+     "d": "2026-10-22",
+     "k": "Ergebnis",
+     "s": "Nach sechs Runden steigen die Entgelte ab 1. Januar 2027 um mindestens 200 € im Monat, dazu kommen eine neue Entgeltstruktur und 30 Urlaubstage für alle. Für August bis Dezember 2026 gibt es Nachzahlungen.",
+     "src": "DGB Tarifmeldungen",
+     "t": "LUG Aircargo Frankfurt: mindestens 200 € mehr",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/tarifabschluss-bei-lug-aircargo-handling-frankfurt-bringt-deutliche-entgeltsteigerungen/"
+    },
+    {
+     "d": "2026-10-22",
+     "k": "Ergebnis",
+     "s": "Für Cockpit und Kabine zahlt die Airline monatlich 5 % des Einkommens in eine Unterstützungskasse, wahlweise gibt es stattdessen eine gleich hohe Zulage. Bei Discover Airlines lehnte ver.di das erste Angebot als zu niedrig ab.",
+     "src": "DGB Tarifmeldungen",
+     "t": "Lufthansa City Airlines: neue Altersvorsorge",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/verdi-erzielt-neue-altersvorsorge-bei-lufthansa-city-airlines/"
+    },
+    {
+     "d": "2026-10-08",
+     "k": "Verhandlung",
+     "s": "ver.di fordert 6 % mehr Gehalt und 300 € mehr für Nachwuchskräfte. In der ersten Runde in Berlin legten die Arbeitgeber noch kein Angebot vor.",
+     "src": "DGB",
+     "t": "Private Banken: Auftakt ohne Angebot",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/tarifrunde-private-banken-startet-ohne-arbeitgeberangebot/"
+    },
+    {
+     "d": "2026-10-08",
+     "k": "Ergebnis",
+     "s": "Nach zwei Verhandlungsrunden gibt es im Einzel und Versandhandel mehr Geld, eine höhere Ausbildungsvergütung und einen tariflichen Mindestlohn.",
+     "src": "DGB",
+     "t": "Handel im Saarland: Einigung für 50.000 Beschäftigte",
+     "url": "https://www.dgb.de/service/weiterer-service/tarifmeldungen/tarifmeldung/mehr-geld-fuer-50000-beschaeftigte-im-saar-handel/"
+    }
+   ]
+  }
+ },
+ "meta": {
+  "updatedAt": "2026-10-24T04:40:00Z"
+ }
+}
