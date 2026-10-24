@@ -216,6 +216,13 @@ textarea{width:100%;min-height:90px;font:500 16px ui-monospace,monospace;resize:
 .slip h4{margin:0 0 4px;font:700 17px var(--display)}
 .slip p{margin:0 0 10px;font-size:13px;color:var(--muted)}
 .slip .btnrow{padding:0}
+.phint{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:14px 14px 4px;margin-bottom:12px}
+.phint .ph1{margin:0 0 8px;font:700 15px var(--display)}
+.phint ul{margin:0 0 10px;padding-left:20px;display:grid;gap:6px;font-size:14px}
+.phint .ph2{margin:0 0 8px;font-size:13px;color:var(--fg);background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:10px;padding:8px 10px}
+.phint .ph3{margin:0 0 10px;font-size:12px;color:var(--muted)}
+.slwarn{background:color-mix(in srgb,var(--bad) 14%,var(--surface-2));border:1px solid color-mix(in srgb,var(--bad) 45%,var(--line));border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 10px}
+.slnote{background:color-mix(in srgb,var(--accent) 10%,var(--surface-2));border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 10px}
 .lock{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--muted);margin-top:10px}
 .lock svg{flex:0 0 16px;width:16px;height:16px;color:var(--good);margin-top:1px}
 .found{display:grid;gap:8px;margin:6px 0 14px}
@@ -391,8 +398,9 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
   <section id="v-set" hidden>
     <div class="slip" id="slipCard">
       <h4>Lohnabrechnung auslesen</h4>
-      <p>Zulo findet deine Zulagen und Zuschläge mit Stunden und Sätzen, auch firmeninterne, und rechnet ab dann damit.</p>
-      <div class="btnrow"><button type="button" class="btn pri small" id="slipPick">PDF auswählen</button><button type="button" class="btn sec2 small" id="slipPaste">Text einfügen</button></div>
+      <p>Zulo findet deine Zulagen und Zuschläge mit Stunden und Sätzen, auch firmeninterne, und rechnet ab dann damit. Als PDF oder als Foto.</p>
+      <div class="btnrow"><button type="button" class="btn pri small" id="slipPick">PDF auswählen</button><button type="button" class="btn sec2 small" id="slipPhotoBtn">Foto</button><button type="button" class="btn sec2 small" id="slipPaste">Text einfügen</button></div>
+      <input type="file" id="slipPhoto" accept="image/*" multiple tabindex="-1" aria-hidden="true">
       <input type="file" id="slipFile" accept="application/pdf,.pdf" tabindex="-1" aria-hidden="true">
       <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Die Abrechnung wird nur auf diesem Gerät gelesen. Sie wird nicht hochgeladen, nicht gespeichert und danach sofort verworfen. Übernommen werden nur die Werte, die du anhakst. Name, Personalnummer und Bankdaten liest Zulo nicht aus.</span></div>
     </div>
@@ -516,6 +524,18 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
     <div class="grab"></div>
     <h3 id="slTitle">Lohnabrechnung auslesen</h3>
     <div class="meta" id="slMeta"></div>
+    <div id="slPhotoHint" class="phint" hidden>
+      <p class="ph1">So klappt das Foto am besten</p>
+      <ul>
+        <li><b>Ganzes Blatt</b> im Bild, gerade von oben, nicht schräg</li>
+        <li><b>Hell und ohne Schatten</b>, am besten bei Tageslicht und ohne Blitz</li>
+        <li><b>Scharf</b>: kurz antippen zum Fokussieren, dann auslösen</li>
+        <li>Mehrere Seiten? Wähl einfach mehrere Fotos aus</li>
+      </ul>
+      <p class="ph2">Bei Fotos kann sich die Texterkennung verlesen, zum Beispiel eine 3 als 8. Vergleich die erkannten Zahlen deshalb kurz mit deiner Abrechnung, bevor du sie übernimmst. Das PDF aus dem Mitarbeiterportal ist immer genauer.</p>
+      <p class="ph3">Das Foto wird nur auf diesem Gerät gelesen und nicht hochgeladen.</p>
+      <div class="actions" style="margin-bottom:12px"><button class="btn pri" id="slPhotoGo">Foto aufnehmen oder wählen</button></div>
+    </div>
     <div id="slPaste" hidden>
       <label class="pw" for="slText">Öffne die Abrechnung, markiere alles, kopiere es und füg es hier ein.<textarea id="slText" placeholder="Text der Abrechnung"></textarea></label>
       <div class="actions" style="margin-bottom:12px"><button class="btn pri" id="slTextGo">Auslesen</button></div>
@@ -1298,7 +1318,7 @@ async function startNews(){
 let slip=null,slipBuf=null,pdfLib=null;
 function slipReset(){slip=null;slipBuf=null;try{$("slipFile").value=""}catch(e){}
   ["slText","slPwIn"].forEach(id=>{try{$(id).value=""}catch(e){}});
-  ["slPaste","slPw","slErr"].forEach(id=>{try{$(id).hidden=true}catch(e){}});
+  ["slPaste","slPw","slErr","slPhotoHint"].forEach(id=>{try{$(id).hidden=true}catch(e){}});
   try{$("slRes").innerHTML="";$("slApply").hidden=true}catch(e){}}
 async function loadPdf(){
   if(pdfLib)return pdfLib;
@@ -1346,7 +1366,7 @@ function dbNormalize(lines){
   const isDb=lines.some(l=>/lohnart/i.test(l.replace(/\s+/g,"")))||lines.filter(l=>{const m=l.match(ROW);return m&&/^\d{3,6}-?(\s|$)/.test(m[3])&&!/,/.test(m[3].split(/\s+[A-Z]{2}\b/)[0])}).length>=3;
   if(!isDb)return lines;
   const c2=t=>{const neg=/-$/.test(t);const d=t.replace(/-/g,"");const v=(+d/100).toFixed(2).replace(".",",");return (neg?"-":"")+v};
-  const out=[];
+  const out=[];out.dbCheck=[];let sum=0,cnt=0;
   for(const raw of lines){
     const line=raw.replace(/\s+/g," ").trim();const m=line.match(ROW);
     if(!m||/,/.test(m[3].split(/\s/)[0])){out.push(raw);continue}
@@ -1364,11 +1384,17 @@ function dbNormalize(lines){
     else if(pre.length===1){const p0=pre[0].replace(/-/g,"");parts=[pu[0]?c2(pre[0])+" "+pu[0]:(+p0>=100&&!/^0/.test(p0)?c2(pre[0]):(+p0)+",00")]}
     else if(pre.length>2){parts=pre.map((t,i)=>pu[i]?c2(t)+" "+pu[i]:c2(t))}
     out.push([m[1]].concat(parts,[c2(amt)]).join(" "));
+    /* Prüfsumme: alle Zeilen bis "Summe Bruttobetrag" müssen genau diese Summe ergeben */
+    const val=(/-$/.test(amt)?-1:1)*(+amt.replace(/-/g,""))/100;
+    if(/summe\s*brutto/i.test(m[1])){if(cnt>=2)out.dbCheck.push({sum:Math.round(sum*100)/100,soll:val,diff:Math.round((val-sum)*100)/100});sum=0;cnt=0}
+    else if(/summe|lohnsteuer|versicherung|vers\b|netto|übertr|ueberw|überw|auszahl/i.test(m[1])){if(/netto|übertr|überw/i.test(m[1])){sum=0;cnt=0}}
+    else{sum+=val;cnt++}
   }
   return out;
 }
 function slipParse(lines){
-  lines=dbNormalize(lines);
+  const src=lines.src||"";
+  lines=dbNormalize(lines);const dbCheck=lines.dbCheck||[];
   const R={base:[],zu:[],other:[],ded:[]},seen=new Set();const all=lines.join("\n");
   const g=(re,i=1)=>{const m=all.match(re);return m?m[i]:null};
   /* Grunddaten */
@@ -1387,8 +1413,8 @@ function slipParse(lines){
   const wh=g(/(?:wochenarbeitszeit|wochenstd[\wäöüÄÖÜß]*|wöch[\wäöüÄÖÜß]*\.?\s*arbeitszeit|woech[\wäöüÄÖÜß]*\.?\s*arbeitszeit|std\.?\s*\/\s*woche|az\s*\/\s*woche|regelm[\wäöüÄÖÜß]*\.?\s*(?:wöch[\wäöüÄÖÜß]*\.?\s*)?az|ira\s*az)\D{0,15}?(\d{1,2}(?:,\d{1,2})?)/i);
   if(wh&&N(wh)>=5&&N(wh)<=60)R.base.push({k:"hours",l:"Wochenstunden",v:N(wh),show:fmt(N(wh),1)+" Std"});
   /* DB Kopfzeile: Steuerklasse, Kinderfreibeträge, Konfession, SV Merkmale in einer Zeile ("1   0,0   vd   1 1 1 1") */
-  {const h=all.match(/(?:^|\s)([1-6])\s+(\d{1,2},\d)\s+(--|[a-z]{2})\s+[0-9]\s[0-9]\s[0-9]\s[0-9](?:\s|$)/m);
-   if(h){if(!R.base.some(b=>b.k==="stkl"))R.base.push({k:"stkl",l:"Steuerklasse",v:+h[1],show:["I","II","III","IV","V","VI"][+h[1]-1]});
+  {const h=all.match(/(?:^|\s)([1-6])\s+(\d{1,2},\d)\s+(--|[a-z]{1,2})\s+\d(?:\s?\d){3,4}(?:\s|$)/m);
+   if(h){R.base=R.base.filter(b=>!["stkl","kinder","kirche"].includes(b.k));if(!R.base.some(b=>b.k==="stkl"))R.base.push({k:"stkl",l:"Steuerklasse",v:+h[1],show:["I","II","III","IV","V","VI"][+h[1]-1]});
      if(!R.base.some(b=>b.k==="kinder")&&N(h[2])<=12)R.base.push({k:"kinder",l:"Kinderfreibeträge",v:N(h[2]),show:fmt(N(h[2]),1)});
      if(!R.base.some(b=>b.k==="kirche")){const yes=!/^(--|vd|ak|fr|ev?n)$/i.test(h[3])&&/^(ev|rk|ka|lt|rf|ak|ap|fb|fg|fm|fs|ib|ih|il|is|iw|jd|jh|lt)$/i.test(h[3]);R.base.push({k:"kirche",l:"Kirchensteuer",v:yes,show:yes?"ja":"nein"})}}}
   /* Zusatzbeitrag aus dem Arbeitnehmersatz der Krankenversicherung (7,3 % plus halber Zusatzbeitrag) */
@@ -1423,6 +1449,7 @@ function slipParse(lines){
       continue}
     if(kind||ZUL.test(label)){const once=ONCE.test(label);R.other.push({l:label,a:amt,q,r,once,act:(q!=null||once)?"skip":"plus",kind});continue}
   }
+  R.check=dbCheck;R.src=src;
   return R;
 }
 /* Bei Menge x Satz: steht die Menge vor dem Satz? Erste Zahl in der Zeile ist meist die Menge */
@@ -1464,11 +1491,17 @@ function slipApply(){
 }
 async function slipRun(getLines){
   $("slErr").hidden=true;$("slRes").innerHTML=`<div class="empty">Abrechnung wird auf deinem Gerät gelesen …</div>`;
-  try{const lines=await getLines();slip=slipParse(lines);slipRender()}
+  try{const lines=await getLines();slip=slipParse(lines);slipRender();
+    const notes=[];
+    if(slip.src==="foto")notes.push(`<div class="slnote">Aus einem Foto gelesen. Vergleich die Zahlen bitte kurz mit deiner Abrechnung, bevor du sie übernimmst.</div>`);
+    const bad=(slip.check||[]).filter(c=>Math.abs(c.diff)>0.009);
+    if(bad.length)notes.push(`<div class="slwarn"><b>Bitte genau prüfen:</b> Die erkannten Zeilen ergeben ${eur(bad[0].sum)}, auf der Abrechnung steht als Summe ${eur(bad[0].soll)}. Ein Wert wurde vermutlich falsch gelesen (Abweichung ${eur(Math.abs(bad[0].diff))}).</div>`);
+    else if((slip.check||[]).length&&slip.src==="foto")notes.push(`<div class="slnote" style="background:color-mix(in srgb,var(--good) 12%,var(--surface-2))">Probe bestanden: Die erkannten Zeilen ergeben genau die Bruttosumme der Abrechnung.</div>`);
+    if(notes.length)$("slRes").insertAdjacentHTML("afterbegin",notes.join(""));}
   catch(e){
     if(e&&e.name==="PasswordException"){$("slRes").innerHTML="";$("slPw").hidden=false;if(e.code===2){$("slErr").hidden=false;$("slErr").textContent="Das Passwort stimmt nicht."}setTimeout(()=>{try{$("slPwIn").focus()}catch(x){}},200);return}
     $("slRes").innerHTML="";$("slErr").hidden=false;
-    $("slErr").textContent=e&&e.name==="InvalidPDFException"?"Das ist keine lesbare PDF Datei.":"Die Abrechnung konnte nicht gelesen werden. Probier stattdessen Text einfügen.";
+    $("slErr").textContent=e&&e.name==="InvalidPDFException"?"Das ist keine lesbare PDF Datei.":(slip===null&&$("slMeta").textContent&&e&&/Texterkennung|Sprachdaten|Worker/i.test(e.message||"")?"Die Texterkennung konnte nicht starten. Prüf die Internetverbindung beim ersten Mal (die Texterkennung wird einmalig geladen) und probier es noch einmal.":"Die Abrechnung konnte nicht gelesen werden. Probier stattdessen Text einfügen.");
   }finally{if($("slPw").hidden)slipBuf=null}
 }
 function slipOpen(meta){slipReset();$("slMeta").textContent=meta;openLayer("slipSheet")}
@@ -1485,6 +1518,62 @@ $("slPwIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault(
 $("slipPaste").onclick=()=>{slipOpen("Wird nur auf diesem Gerät gelesen");$("slPaste").hidden=false;setTimeout(()=>{try{$("slText").focus()}catch(e){}},200)};
 $("slTextGo").onclick=()=>{const txt=$("slText").value;$("slText").value="";$("slPaste").hidden=true;slipRun(async()=>txt.split(/\r?\n/))};
 $("slCancel").onclick=closeSheet;$("slApply").onclick=slipApply;
+/* ---------- Lohnabrechnung per Foto (Texterkennung nur auf dem Gerät) ---------- */
+let ocrW=null,ocrSeq=0;const ocrWait={};
+function ocrSimd(){try{return WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11]))}catch(e){return false}}
+function ocrWorker(){
+  if(ocrW)return ocrW;
+  ocrW=new Worker(new URL("lib/ocr/ocr-worker.js",document.baseURI).href);
+  ocrW.onmessage=e=>{const w=ocrWait[e.data.id];if(!w)return;delete ocrWait[e.data.id];e.data.ok?w.res(e.data.texts):w.rej(new Error(e.data.error))};
+  ocrW.onerror=e=>{for(const k in ocrWait){ocrWait[k].rej(new Error("Texterkennung nicht verfügbar"));delete ocrWait[k]}ocrW=null};
+  return ocrW;
+}
+/* Foto aufbereiten: richtig drehen (EXIF), auf gut lesbare Größe bringen, Graustufen, Kontrast strecken */
+async function ocrPrep(file){
+  let bmp;
+  try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(e){bmp=await createImageBitmap(file)}
+  const maxW=2400,sc=Math.min(1,maxW/Math.max(bmp.width,bmp.height))*(Math.max(bmp.width,bmp.height)<1600?1.6:1);
+  const w=Math.round(bmp.width*sc),h=Math.round(bmp.height*sc);
+  const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+  const cx=cv.getContext("2d",{willReadFrequently:true});cx.imageSmoothingQuality="high";cx.drawImage(bmp,0,0,w,h);try{bmp.close()}catch(e){}
+  const id=cx.getImageData(0,0,w,h),d=id.data,hist=new Uint32Array(256);
+  for(let i=0;i<d.length;i+=4){const g=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000|0;d[i]=g;hist[g]++}
+  let lo=0,hi=255,n=0;const cut=w*h*0.01;
+  for(;lo<255;lo++){n+=hist[lo];if(n>cut)break}n=0;for(;hi>0;hi--){n+=hist[hi];if(n>cut*4)break}
+  const span=Math.max(30,hi-lo);
+  for(let i=0;i<d.length;i+=4){let v=(d[i]-lo)*255/span;v=v<0?0:v>255?255:v;d[i]=d[i+1]=d[i+2]=v}
+  cx.putImageData(id,0,0);
+  const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
+  return await blob.arrayBuffer();
+}
+/* Erkannten Text aufräumen: Tabellenstriche entfernen, typische Verwechsler in Zahlen korrigieren */
+function ocrClean(text){
+  return text.split(/\r?\n/).map(l=>l
+    .replace(/[|¦]/g,"")
+    /* einzelne Störzeichen von Tabellenlinien zwischen den Spalten */
+    .replace(/(^|\s)[{}\[\]!;:¦|\/\\~°^]+(?=\s|$)/g,"$1")
+    .replace(/(\s)[iIlHjJ](?=\s|$)/g,"$1")
+    .replace(/\s{2,}/g,"   ")
+    .replace(/(\d)[!Il](?=\d)/g,"$1")
+    .replace(/(?<=\s|^)[Oo](?=\d{2,})/g,"0")
+    .replace(/(\d)[Oo](?=\d)/g,"$10")
+    .replace(/\s+$/,"")).filter(l=>l.trim());
+}
+async function ocrLines(files,onStep){
+  const imgs=[];
+  for(let i=0;i<files.length;i++){onStep&&onStep(`Foto ${i+1} von ${files.length} wird vorbereitet`);imgs.push(await ocrPrep(files[i]))}
+  onStep&&onStep(files.length>1?"Texterkennung läuft, das dauert einige Sekunden je Foto":"Texterkennung läuft, das dauert einige Sekunden");
+  const w=ocrWorker(),id=++ocrSeq;
+  const texts=await new Promise((res,rej)=>{ocrWait[id]={res,rej};w.postMessage({id,simd:ocrSimd(),images:imgs},imgs)});
+  return texts.flatMap(ocrClean);
+}
+
+$("slipPhotoBtn").onclick=()=>{slipOpen("Wird nur auf diesem Gerät gelesen");$("slPhotoHint").hidden=false};
+$("slPhotoGo").onclick=()=>$("slipPhoto").click();
+$("slipPhoto").onchange=e=>{const fs=[...(e.target.files||[])].filter(f=>/^image\//.test(f.type)||/\.(jpe?g|png|heic|heif|webp)$/i.test(f.name)).slice(0,6);e.target.value="";if(!fs.length)return;
+  if(fs.some(f=>f.size>25e6)){toast("Ein Foto ist zu groß");return}
+  $("slPhotoHint").hidden=true;
+  slipRun(async()=>{const L=await ocrLines(fs,t=>{$("slRes").innerHTML=`<div class="empty">${t} …</div>`});L.src="foto";return L})};
 
 /* ---------- Uhrzeit eintippen statt scrollen ---------- */
 /* "1445" -> 14:45, "945" -> 09:45, "14" -> 14:00, "14.45" -> 14:45; null = ungültig */

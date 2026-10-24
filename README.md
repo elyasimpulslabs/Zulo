@@ -11,7 +11,7 @@ Schichtkalender mit Zuschlägen. Schichten eintragen, Zuschläge nach Tarif auto
 * Tarifvorlagen: Deutsche Bahn mit EVG oder GDL, TVöD, TV-L, Chemie, kein Tarif, eigene Werte
 * Netto nach dem Lohnsteuer Ablaufplan 2026 und den Sozialversicherungswerten 2026, inklusive Gehaltsumwandlung (Firmenrad, Leasing)
 * Zulagen aus dem Vormonat werden zum richtigen Zahltag eingerechnet
-* Lohnabrechnung als PDF einlesen
+* Lohnabrechnung als PDF oder Foto einlesen (Texterkennung direkt auf dem Gerät), inklusive DB Abrechnungsformat und Summenprobe
 * News zu Tarifverhandlungen von 13 Gewerkschaften
 
 ## Datenschutz
@@ -34,5 +34,6 @@ Danach funktioniert Zulo auch ohne Internet.
 | `sw.js` | Offline Speicher |
 | `manifest.webmanifest`, `icons/` | Installation als App |
 | `lib/` | PDF Leser (pdf.js, Apache 2.0 Lizenz) |
+| `lib/ocr/` | Texterkennung für Fotos (Tesseract, Apache 2.0 Lizenz), deutsches Sprachmodell |
 
 Die berechneten Werte sind Schätzungen. Maßgeblich ist immer die eigene Lohnabrechnung.
