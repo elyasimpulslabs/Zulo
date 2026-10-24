@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; base-uri 'self'; form-action 'none'">
-<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{box-sizing:border-box;padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 80px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Zulo</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
@@ -42,12 +42,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulati
 button,.day,.seg,.unions button,.types button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .wrap{overflow-x:hidden}
 body{font-family:var(--body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(110px + env(safe-area-inset-bottom,0px))}
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:10px;padding-block:12px 10px}
-header img{width:38px;height:auto;display:block}
-.brand{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.04em}
-.brand small{display:block;white-space:nowrap;font-family:var(--body);font-weight:600;font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(env(safe-area-inset-top,0px) + 76px) calc(110px + env(safe-area-inset-bottom,0px))}
+header{position:fixed;top:0;left:0;right:0;z-index:12;display:flex;align-items:center;gap:14px;padding-top:calc(env(safe-area-inset-top,0px) + 10px);padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px),calc(50vw - 264px));padding-right:max(16px,env(safe-area-inset-right,0px),calc(50vw - 264px));background:var(--bg);box-shadow:0 4px 14px rgba(0,0,0,.12);border-bottom:1px solid var(--line)}
+header img{width:42px;height:auto;display:block;flex:none}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.05;letter-spacing:.04em}
+.brand small{display:block;white-space:nowrap;font-family:var(--body);font-weight:600;font-size:10px;line-height:1.2;margin-top:4px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
 .seg{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--surface);border-top:1px solid var(--line);padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
 .seg button{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;color:var(--muted);font:600 11px var(--body);padding:6px 0;border-radius:12px;cursor:pointer;min-width:0}
 .seg button svg{width:22px;height:22px}
