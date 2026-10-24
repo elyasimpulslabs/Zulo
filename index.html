@@ -452,7 +452,7 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
       <label class="f" for="tStkl"><span>Steuerklasse<small>Steht auf der Abrechnung</small></span><span class="inp"><select id="tStkl"><option value="1">I</option><option value="2">II</option><option value="3">III</option><option value="4">IV</option><option value="5">V</option><option value="6">VI</option></select></span></label>
       <label class="f" for="tKinder"><span>Kinderfreibeträge<small>Laut Abrechnung, z. B. 0,5 oder 1,0</small></span><span class="inp"><input id="tKinder" type="text" data-num="1" min="0" step="0.5" inputmode="decimal"></span></label>
       <label class="f" for="tKirche"><span>Kirchensteuer<small>8 % in BW und Bayern, sonst 9 %</small></span><span class="inp"><select id="tKirche"><option value="0">nein</option><option value="1">ja</option></select></span></label>
-      <label class="f" for="tKvz"><span>Zusatzbeitrag Krankenkasse<small>Durchschnitt 2026: 2,9 %</small></span><span class="inp"><input id="tKvz" type="text" data-num="1" min="0" step="0.01" inputmode="decimal"><span class="unit">%</span></span></label>
+      <label class="f" for="tKvz"><span>Zusatzbeitrag Krankenkasse<small>Steht als Krankenversicherung auf der Abrechnung. Durchschnitt 2026: 2,9 %, günstige Kassen ab rund 2,5 %</small></span><span class="inp"><input id="tKvz" type="text" data-num="1" min="0" step="0.01" inputmode="decimal"><span class="unit">%</span></span></label>
       <label class="f" for="tPvK"><span>Kinder unter 25<small>Senkt den Pflegebeitrag ab dem 2. Kind</small></span><span class="inp"><input id="tPvK" type="text" data-num="1" min="0" step="1" inputmode="numeric"></span></label>
       <label class="f" for="tKl"><span>Kinderlos und mindestens 23<small>Zuschlag zur Pflegeversicherung</small></span><span class="inp"><select id="tKl"><option value="1">ja</option><option value="0">nein</option></select></span></label>
     </div>
@@ -1673,6 +1673,10 @@ function slipParse(lines){
   /* Zusatzbeitrag aus dem Arbeitnehmersatz der Krankenversicherung (7,3 % plus halber Zusatzbeitrag) */
   if(!R.base.some(b=>b.k==="kvz")){const kl=lines.find(l=>/krankenv/i.test(l)&&/\b(\d{1,2},\d{2})\b/.test(l));
     if(kl){const rr=(kl.match(/\b(\d{1,2},\d{2})\b/)||[])[1];const an=rr?N(rr):0;if(an>7.3&&an<10.5){const z=Math.round((an-7.3)*2*100)/100;R.base.push({k:"kvz",l:"Zusatzbeitrag Krankenkasse",v:z,show:fmt(z)+" %"})}}}
+  /* Genauer: Zusatzbeitrag aus Beitrag geteilt durch KV Brutto (die Abrechnung kürzt den Satz auf 2 Stellen, z. B. 9,22 statt 9,225) */
+  {const kvA=[],lauf=[];lines.forEach(l=>{const t=l.replace(/\s+/g," ").trim();if(/^krankenvers/i.test(t)){const n=t.match(NUMRE);if(n&&n.length>=2)kvA.push(Math.abs(pnum(n[1])))}else if(/^laufend\b/i.test(t)){const n=t.match(NUMRE);if(n)lauf.push(pnum(n[0]))}});
+   let best=null;kvA.forEach((a,i)=>{const b=lauf[i];if(b>500&&a>0&&(!best||b>best.b))best={a,b}});
+   if(best){const z=Math.round((best.a/best.b*100-7.3)*2*100)/100;if(z>0&&z<6){R.base=R.base.filter(x=>x.k!=="kvz");R.base.push({k:"kvz",l:"Zusatzbeitrag Krankenkasse",v:z,show:fmt(z)+" %"})}}}
   /* Zeilen mit Beträgen */
   let absA=0,absH=0;
   for(const [li,raw] of lines.entries()){
