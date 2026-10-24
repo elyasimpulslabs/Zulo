@@ -1320,7 +1320,19 @@ function slipReset(){slip=null;slipBuf=null;try{$("slipFile").value=""}catch(e){
   ["slText","slPwIn"].forEach(id=>{try{$(id).value=""}catch(e){}});
   ["slPaste","slPw","slErr","slPhotoHint"].forEach(id=>{try{$(id).hidden=true}catch(e){}});
   try{$("slRes").innerHTML="";$("slApply").hidden=true}catch(e){}}
+/* Safari kann Datenströme nicht mit for await durchlaufen, pdf.js braucht das beim Text auslesen */
+function streamIterFix(){
+  try{const P=typeof ReadableStream!=="undefined"&&ReadableStream.prototype;if(!P||P[Symbol.asyncIterator])return;
+    const it=function(o){const r=this.getReader(),keep=o&&o.preventCancel;return{
+      next(){return r.read()},
+      async return(v){try{if(!keep)await r.cancel(v)}finally{try{r.releaseLock()}catch(e){}}return{done:true,value:v}},
+      [Symbol.asyncIterator](){return this}}};
+    Object.defineProperty(P,Symbol.asyncIterator,{value:it,configurable:true,writable:true});
+    if(!P.values)Object.defineProperty(P,"values",{value:it,configurable:true,writable:true});
+  }catch(e){}
+}
 async function loadPdf(){
+  streamIterFix();
   if(pdfLib)return pdfLib;
   const base=new URL("lib/",document.baseURI).href;
   /* Worker im Hauptthread laden: keine Web Worker nötig, funktioniert auch in eingebetteten Ansichten */
@@ -1502,6 +1514,7 @@ async function slipRun(getLines){
     if(e&&e.name==="PasswordException"){$("slRes").innerHTML="";$("slPw").hidden=false;if(e.code===2){$("slErr").hidden=false;$("slErr").textContent="Das Passwort stimmt nicht."}setTimeout(()=>{try{$("slPwIn").focus()}catch(x){}},200);return}
     $("slRes").innerHTML="";$("slErr").hidden=false;
     $("slErr").textContent=e&&e.name==="InvalidPDFException"?"Das ist keine lesbare PDF Datei.":(slip===null&&$("slMeta").textContent&&e&&/Texterkennung|Sprachdaten|Worker/i.test(e.message||"")?"Die Texterkennung konnte nicht starten. Prüf die Internetverbindung beim ersten Mal (die Texterkennung wird einmalig geladen) und probier es noch einmal.":"Die Abrechnung konnte nicht gelesen werden. Probier stattdessen Text einfügen.");
+    try{if(e&&e.message&&!/Texterkennung/.test(e.message))$("slErr").insertAdjacentHTML("beforeend",`<br><small style="opacity:.6">${esc((e.name||"")+": "+e.message).slice(0,160)}</small>`)}catch(x){};
   }finally{if($("slPw").hidden)slipBuf=null}
 }
 function slipOpen(meta){slipReset();$("slMeta").textContent=meta;openLayer("slipSheet")}
