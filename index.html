@@ -1332,12 +1332,43 @@ async function pdfLines(buf,password){
 }
 const NUMRE=/-?\d{1,3}(?:\.\d{3})+,\d{1,4}-?|-?\d+,\d{1,4}-?/g;
 const pnum=t=>{let neg=/^-|-$/.test(t);const v=N(t.replace(/-/g,""));return neg?-v:v};
-const SKIP=/krankenkasse|zusatzbeitr|arbeitszeit|steuerklasse|konfession|kinderfreib|^\W*steuer\s*-?\s*kl|steuer\s*-?\s*brutto|sv\s*-?\s*brutto|gesamt\s*-?\s*brutto|^brutto|bruttobez|summe|gesamt|netto|auszahl|überweis|ueberweis|lohnsteuer|solidar|soli\b|kirchenst|^\W*kist|krankenv|^\W*kv\b|kv-?beitr|rentenv|^\W*rv\b|rv-?beitr|arbeitslosenv|^\W*av\b|av-?beitr|pflegev|^\W*pv\b|pv-?beitr|umlage|freibetrag|jahres|kumul|iban|bic\b|bank|konto|steuer-?id|identifikation|sozialvers\w*nummer|vers\.?-?nr|personal|pers\.?-?nr|geburt|anschrift|straße|strasse|urlaub\s*(anspruch|rest|tage)|resturlaub|saldo|zeitkonto|gleitzeit|übertrag|vortrag|bemessung|beitragspfl|steuerpfl|pfändung|abschlag|vorschuss/i;
-const BASE=/monatsentgelt|monatsgehalt|grundentgelt|tabellenentgelt|tarifentgelt|grundgehalt|grundvergütung|grundverguetung|monatslohn|gehalt\b|entgelt\s*(?:fgr|eg|e\s?\d|tarif)/i;
-const KINDS=[["hol",/feiertag|feiert\.|\bft\.?-?zu/i],["eve",/heiligabend|silvester|24\.\s?12|31\.\s?12/i],["sun",/sonntag|sonnt\.|\bso\.?-?zu/i],["sat",/samstag|sonnabend|\bsa\.?-?zu/i],["shift",/dunkle\s*nacht|0\s*(?:-|bis)\s*4\s*uhr|schichtende|schichtbeginn/i],["night",/nacht/i]];
-const ZUL=/zuschl|zulage|zul\.|prämie|praemie|pauschal|entschädigung|entschaedigung|erschwer|bereitschaft|rufbereit|mehrarbeit|überstund|ueberstund|dispo|wechselschicht|schicht|auslöse|ausloese|spesen|verpfleg|fahr|wege|reise|vergütung|verguetung|aufwand|einsatz|funktion|leistung|sonderz|zusatz|ausgleich|stunden|bonus|zuschuss|beihilfe|geld\b|zahlung/i;
+const SKIP=/krankenkasse|zusatzbeitr|arbeitszeit|steuerklasse|konfession|kinderfreib|^\W*steuer\s*-?\s*kl|steuer\s*-?\s*brutto|sv\s*-?\s*brutto|gesamt\s*-?\s*brutto|^brutto(?!verz)|bruttobez|einmalbezug|summe|gesamt|netto|auszahl|überweis|ueberweis|lohnsteuer|solidar|soli\b|kirchenst|^\W*kist|krankenv|^\W*kv\b|kv-?beitr|rentenv|^\W*rv\b|rv-?beitr|arbeitslosenv|^\W*av\b|av-?beitr|pflegev|^\W*pv\b|pv-?beitr|umlage|freibetrag|jahres|kumul|iban|bic\b|bank|konto|steuer-?id|identifikation|sozialvers\w*nummer|vers\.?-?nr|personal|pers\.?-?nr|geburt|anschrift|straße|strasse|urlaub\s*(anspruch|rest|tage)|resturlaub|saldo|zeitkonto|gleitzeit|übertrag|vortrag|bemessung|beitragspfl|steuerpfl|pfändung|abschlag|vorschuss/i;
+const BASE=/zahlbetrag\s*aus\s*mte|monatstabellenentgelt|monatsentgelt|monatsgehalt|grundentgelt|tabellenentgelt|tarifentgelt|grundgehalt|grundvergütung|grundverguetung|monatslohn|gehalt\b|entgelt\s*(?:fgr|eg|e\s?\d|tarif)/i;
+const KINDS=[["hol",/feiertag|feiert\.|\bft\.?-?zu/i],["eve",/heiligabend|silvester|24\.\s?12|31\.\s?12/i],["sun",/sonntag|sonnt\.|\bso\.?-?zu/i],["sat",/samstag|sonnabend|\bsa\.?-?zu/i],["shift",/pnz\s*\(?(?:ende|beginn)|dunkle\s*nacht|0\s*(?:-|bis)\s*4\s*uhr|schichtende|schichtbeginn/i],["night",/nacht/i]];
+const ZUL=/zuschl|zulage|zul\.|zul\b|prämie|praemie|pauschal|entschädigung|entschaedigung|erschwer|bereitschaft|rufbereit|mehrarbeit|überstund|ueberstund|dispo|wechselschicht|schicht|auslöse|ausloese|spesen|verpfleg|fahr|wege|reise|vergütung|verguetung|aufwand|einsatz|funktion|leistung|sonderz|zusatz|ausgleich|stunden|bonus|zuschuss|beihilfe|geld\b|zahlung/i;
 const ONCE=/urlaubsgeld|weihnachtsgeld|jahressonder|sonderzahl|einmal|nachzahl|inflation|zusatzgeld|t-?zug|jubil|abfindung|rückrechn|rueckrechn|differenz/i;
+/* DB Abrechnungen (und ähnliche Spaltenformate) drucken Beträge ohne Komma: "Nachtzulage 216 2700 ST 382 10314 GG".
+   Lohnart (3 Ziffern), Anzahl, Faktor und Betrag mit zwei gedachten Nachkommastellen, Minus hinten.
+   Diese Zeilen werden in normale Schreibweise übersetzt: "Nachtzulage 27,00 ST 3,82 103,14". */
+function dbNormalize(lines){
+  const ROW=/^(.*?[A-Za-zÄÖÜäöüß.)].*?)(?:\s+|(?<=\.))(\d{3})\s+(\d.*)$/;
+  const CODE=/^(?:[A-Z]{2}|[A-Z]\d{2,4}|[A-Z]{2,4}\d{1,3}|\*)$/;
+  const isDb=lines.some(l=>/lohnart/i.test(l.replace(/\s+/g,"")))||lines.filter(l=>{const m=l.match(ROW);return m&&/^\d{3,6}-?(\s|$)/.test(m[3])&&!/,/.test(m[3].split(/\s+[A-Z]{2}\b/)[0])}).length>=3;
+  if(!isDb)return lines;
+  const c2=t=>{const neg=/-$/.test(t);const d=t.replace(/-/g,"");const v=(+d/100).toFixed(2).replace(".",",");return (neg?"-":"")+v};
+  const out=[];
+  for(const raw of lines){
+    const line=raw.replace(/\s+/g," ").trim();const m=line.match(ROW);
+    if(!m||/,/.test(m[3].split(/\s/)[0])){out.push(raw);continue}
+    const toks=m[3].split(" "),num=[],units=[];
+    for(let i=0;i<toks.length;i++){const t=toks[i];
+      if(/^\d+-?$/.test(t)){num.push(t);units.push("");continue}
+      if(/^(st|std|h|tg|tage|km|stk)$/i.test(t)&&num.length){units[num.length-1]=t;continue}
+      break}
+    if(!num.length){out.push(raw);continue}
+    const amt=num[num.length-1];
+    /* Steht hinter dem Betrag schon ein Wert mit Komma (z. B. Geldwerter Vorteil 9,00), bleibt die Zeile wie sie ist */
+    const pre=num.slice(0,-1),pu=units.slice(0,-1);
+    let parts=[];
+    if(pre.length===2){parts=[pu[0]?c2(pre[0])+" "+pu[0]:(+pre[0].replace(/-/g,""))+",00",c2(pre[1])]}
+    else if(pre.length===1){const p0=pre[0].replace(/-/g,"");parts=[pu[0]?c2(pre[0])+" "+pu[0]:(+p0>=100&&!/^0/.test(p0)?c2(pre[0]):(+p0)+",00")]}
+    else if(pre.length>2){parts=pre.map((t,i)=>pu[i]?c2(t)+" "+pu[i]:c2(t))}
+    out.push([m[1]].concat(parts,[c2(amt)]).join(" "));
+  }
+  return out;
+}
 function slipParse(lines){
+  lines=dbNormalize(lines);
   const R={base:[],zu:[],other:[],ded:[]},seen=new Set();const all=lines.join("\n");
   const g=(re,i=1)=>{const m=all.match(re);return m?m[i]:null};
   /* Grunddaten */
@@ -1355,6 +1386,14 @@ function slipParse(lines){
   if(kvz&&N(kvz)<6)R.base.push({k:"kvz",l:"Zusatzbeitrag Krankenkasse",v:N(kvz),show:fmt(N(kvz))+" %"});
   const wh=g(/(?:wochenarbeitszeit|wochenstd[\wäöüÄÖÜß]*|wöch[\wäöüÄÖÜß]*\.?\s*arbeitszeit|woech[\wäöüÄÖÜß]*\.?\s*arbeitszeit|std\.?\s*\/\s*woche|az\s*\/\s*woche|regelm[\wäöüÄÖÜß]*\.?\s*(?:wöch[\wäöüÄÖÜß]*\.?\s*)?az|ira\s*az)\D{0,15}?(\d{1,2}(?:,\d{1,2})?)/i);
   if(wh&&N(wh)>=5&&N(wh)<=60)R.base.push({k:"hours",l:"Wochenstunden",v:N(wh),show:fmt(N(wh),1)+" Std"});
+  /* DB Kopfzeile: Steuerklasse, Kinderfreibeträge, Konfession, SV Merkmale in einer Zeile ("1   0,0   vd   1 1 1 1") */
+  {const h=all.match(/(?:^|\s)([1-6])\s+(\d{1,2},\d)\s+(--|[a-z]{2})\s+[0-9]\s[0-9]\s[0-9]\s[0-9](?:\s|$)/m);
+   if(h){if(!R.base.some(b=>b.k==="stkl"))R.base.push({k:"stkl",l:"Steuerklasse",v:+h[1],show:["I","II","III","IV","V","VI"][+h[1]-1]});
+     if(!R.base.some(b=>b.k==="kinder")&&N(h[2])<=12)R.base.push({k:"kinder",l:"Kinderfreibeträge",v:N(h[2]),show:fmt(N(h[2]),1)});
+     if(!R.base.some(b=>b.k==="kirche")){const yes=!/^(--|vd|ak|fr|ev?n)$/i.test(h[3])&&/^(ev|rk|ka|lt|rf|ak|ap|fb|fg|fm|fs|ib|ih|il|is|iw|jd|jh|lt)$/i.test(h[3]);R.base.push({k:"kirche",l:"Kirchensteuer",v:yes,show:yes?"ja":"nein"})}}}
+  /* Zusatzbeitrag aus dem Arbeitnehmersatz der Krankenversicherung (7,3 % plus halber Zusatzbeitrag) */
+  if(!R.base.some(b=>b.k==="kvz")){const kl=lines.find(l=>/krankenv/i.test(l)&&/\b(\d{1,2},\d{2})\b/.test(l));
+    if(kl){const rr=(kl.match(/\b(\d{1,2},\d{2})\b/)||[])[1];const an=rr?N(rr):0;if(an>7.3&&an<10.5){const z=Math.round((an-7.3)*2*100)/100;R.base.push({k:"kvz",l:"Zusatzbeitrag Krankenkasse",v:z,show:fmt(z)+" %"})}}}
   /* Zeilen mit Beträgen */
   for(const raw of lines){
     const line=raw.replace(/\s+/g," ").trim();if(!line)continue;
@@ -1372,8 +1411,8 @@ function slipParse(lines){
     if(q!=null&&i_order(nums,q,r))[q,r]=[r,q];
     const key=label.toLowerCase();if(seen.has(key))continue;seen.add(key);
     if(amt<0){
-      const t=/rad|bike|leasing|jobrad|fahrrad|e-?bike/i.test(label)?"umw":/vwl|vermögensw|vermoegensw/i.test(label)?"netAbz":"netAbz";
-      R.ded.push({l:label,a:-amt,t,on:t==="umw"});continue}
+      const t=/pc|laptop|notebook|handy|smartphone|tablet|computer/i.test(label)&&/leasing|überl|ueberl|nutzung/i.test(label)?"umwSt":/rad|bike|leasing|jobrad|fahrrad|e-?bike/i.test(label)?"umw":/vwl|vermögensw|vermoegensw/i.test(label)?"netAbz":"netAbz";
+      R.ded.push({l:label,a:-amt,t,on:t==="umw"||t==="umwSt"});continue}
     if(BASE.test(label)&&!ZUL.test(label)&&amt>300){if(!R.base.some(b=>b.k==="monthly"))R.base.push({k:"monthly",l:"Monatsgehalt brutto",v:amt,show:eur(amt),src:label});continue}
     if(/stundenlohn|std\.?\s*-?\s*lohn|stundenentgelt|lohn\s*je\s*std/i.test(label)&&amt<100){R.base.push({k:"wage",l:"Stundenlohn",v:amt,show:eur(amt),src:label});continue}
     const kind=(KINDS.find(([k,re])=>re.test(label))||[])[0];
