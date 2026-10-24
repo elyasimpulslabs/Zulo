@@ -2,7 +2,7 @@
 
 Schichtkalender mit Zuschlägen. Schichten eintragen, Zuschläge nach Tarif automatisch berechnen und sehen, was netto aufs Konto kommt.
 
-**App öffnen:** https://elyasimpulslabs.github.io/zulo/
+**App öffnen:** https://elyasimpulslabs.github.io/Zulo/
 
 ## Was Zulo kann
 
