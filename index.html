@@ -90,7 +90,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .row.total .k,.row.total .v{color:var(--fg);font-family:var(--display);font-weight:800;font-size:19px}
 .row.good .v{color:var(--good)}
 .paycard{margin-bottom:14px}
-.item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
+.item{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
 .item:last-child{border-bottom:0}
 .item input[type=text]{width:100%;min-width:0}
 .item select{grid-column:1/-1;width:100%}
@@ -222,6 +222,15 @@ textarea{width:100%;min-height:90px;font:500 16px ui-monospace,monospace;resize:
 .phint .ph3{margin:0 0 10px;font-size:12px;color:var(--muted)}
 .slwarn{background:color-mix(in srgb,var(--bad) 14%,var(--surface-2));border:1px solid color-mix(in srgb,var(--bad) 45%,var(--line));border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 10px}
 .slnote{background:color-mix(in srgb,var(--accent) 10%,var(--surface-2));border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 10px}
+.rep{margin:4px 0 10px;border-top:1px solid var(--line);padding-top:10px}
+.rep .repT{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;min-height:40px}
+.rep .repT input{width:22px;height:22px;accent-color:var(--accent)}
+.rep label.rl{display:grid;gap:6px;font-size:14px;color:var(--muted);margin:8px 0}
+.wd{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:6px 0 8px}
+.wd button{min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:600 14px var(--body)}
+.wd button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#1a1006}
+.pinfo{font-size:13px;color:var(--muted);padding:10px 0 4px;line-height:1.45}
+.pinfo b{color:var(--fg)}
 .lock{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--muted);margin-top:10px}
 .lock svg{flex:0 0 16px;width:16px;height:16px;color:var(--good);margin-top:1px}
 .found{display:grid;gap:8px;margin:6px 0 14px}
@@ -425,6 +434,14 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
       <label class="f" for="payDayIn"><span>Zahltag<small>Tag im Monat, an dem das Geld kommt. Bei der Bahn der 25.</small></span><span class="inp"><input id="payDayIn" type="text" data-num="1" step="1" min="1" inputmode="numeric" placeholder="25"><span class="unit">.</span></span></label>
       <label class="f" for="land"><span>Bundesland<small>Für die Feiertage am Arbeitsort</small></span><span class="inp"><select id="land"></select></span></label>
     </div>
+    <div class="sec">Dein Tarifprofil</div>
+    <div class="card" id="profCard"></div>
+    <p class="note" style="margin-top:-6px;margin-bottom:8px" id="profNote"></p>
+    <div class="sec">Sonderzahlungen im Jahr</div>
+    <div class="card"><div id="xtraList"></div>
+      <div class="btnrow"><button type="button" class="btn sec2 small" id="addXtra">+ Sonderzahlung</button><button type="button" class="btn sec2 small" id="tplMetall">Vorlage IG Metall</button></div>
+    </div>
+    <p class="note" style="margin-top:-6px;margin-bottom:8px">Zum Beispiel Weihnachtsgeld, Urlaubsgeld oder tarifliches Zusatzgeld. Zulo rechnet sie im jeweiligen Monat mit Steuern und Abgaben ein. Die IG Metall Vorlage trägt T-ZUG A (27,5 %, Juli), T-Geld (18,4 %, Juli) und T-ZUG B (Februar) ein. T-ZUG B ist ein Festbetrag von rund 845 bis 952 € je nach Tarifgebiet, bitte anpassen.</p>
     <div class="sec">Weitere Posten auf deiner Abrechnung</div>
     <div class="card"><div id="itemsList"></div>
       <div class="btnrow"><button type="button" class="btn sec2 small" id="addItem">+ Posten hinzufügen</button></div>
@@ -491,6 +508,14 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
     </div>
     <p class="err" id="shErr" hidden></p>
     <div class="preview" id="pv"></div>
+    <div class="rep" id="rep">
+      <label class="repT" for="repOn"><input type="checkbox" id="repOn"> Für mehrere Tage eintragen</label>
+      <div id="repBox" hidden>
+        <label class="rl" for="repTo">Bis einschließlich<input id="repTo" type="date"></label>
+        <div class="wd" id="repWd" role="group" aria-label="Wochentage"></div>
+        <p class="note" id="repInfo" style="margin:0"></p>
+      </div>
+    </div>
     <div class="actions">
       <button class="btn del" id="bDel">Löschen</button>
       <button class="btn sec2" id="bCancel">Abbrechen</button>
@@ -820,6 +845,52 @@ const taxCfg=c=>{if(!c.tax)c.tax={stkl:1,kinder:0,kirche:false,kvz:2.9,kinderlos
 /* Was im Monat m tatsächlich aufs Konto kommt: Grundgehalt dieses Monats + Zuschläge aus dem Monat (m minus Verzögerung) */
 const ITEMTYPES={umw:"Gehaltsumwandlung, z. B. Firmenrad (vor Steuer und Sozialabgaben)",umwSt:"Gehaltsumwandlung nur steuerfrei, z. B. PC Leasing",gwv:"Geldwerter Vorteil, wird nur versteuert",plus:"Zusätzliches Brutto, z. B. feste Zulage",netAbz:"Abzug vom Netto, z. B. Kantine",netPlus:"Zuschuss netto, z. B. Erstattung"};
 function itemSums(c){const S={umw:0,umwSt:0,gwv:0,plus:0,netAbz:0,netPlus:0};(c.items||[]).forEach(it=>{if(S[it.t]!=null)S[it.t]+=Math.max(0,+it.v||0)});return S}
+/* ---------- Tarifprofil: Entgeltgruppe, Stufe, Auszahlungsmodell, Sonderzahlungen ---------- */
+/* TVöD VKA Tabellenentgelt ab 01.05.2026, 39 Wochenstunden (Quelle: kommunalforum.de, ohne Gewähr) */
+const TVOED_VKA={E15:[5828,6209,6634,7214,7811,8204],E14:[5298,5643,6094,6594,7152,7552],E13:[4901,5279,5710,6177,6727,7026],E12:[4416,4851,5360,5924,6586,6900],E11:[4270,4670,5046,5454,6013,6327],E10:[4125,4438,4795,5181,5612,5753],E9C:[4011,4291,4595,4923,5275,5528],E9B:[3780,4039,4204,4691,4979,5313],E9A:[3659,3878,4098,4587,4697,4980],E8:[3486,3697,3843,3992,4154,4231],E7:[3295,3538,3683,3829,3969,4045],E6:[3240,3440,3580,3719,3856,3926],E5:[3124,3318,3449,3588,3717,3783],E4:[2994,3190,3355,3458,3560,3620],E3:[2953,3164,3216,3333,3421,3502],E2:[2768,2975,3027,3101,3264,3433],E1:[0,2535,2569,2612,2652,2755]};
+const isoD=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||"")?new Date(v+"T12:00:00"):null;
+const deDate=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||"");return m?`${m[3]}.${m[2]}.${m[1]}`:(v||"")};
+const addY=(d,n)=>new Date(d.getFullYear()+n,d.getMonth(),d.getDate(),12);
+/* TVöD und TV-L: Stufe 2 nach 1 Jahr, 3 nach 2, 4 nach 3, 5 nach 4, 6 nach 5 Jahren in der Stufe (E1: je 4 Jahre).
+   Die höhere Stufe gilt ab dem Monat, in dem sie erreicht wird. Gibt die Stufe und den Beginn dieser Stufe zurück. */
+function tvStufe(P,at){
+  let s=+P.stufe||0,d=isoD(P.seit);if(!s||!d)return {s:s||null,from:d,next:null};
+  for(;;){if(s>=6)return {s,from:d,next:null};
+    const nx=addY(d,String(P.eg||"").toUpperCase()==="E1"?4:s);
+    if(nx>at)return {s,from:d,next:nx};s++;d=nx}
+}
+/* Chemie: Stufen nach Tätigkeitsjahren in der Entgeltgruppe. E5: ab 4. und 7. Jahr; E6 bis E13: ab 3., 5. und 7. Jahr */
+function chemStufe(P,at){
+  const n=parseInt(String(P.eg||"").replace(/\D/g,""),10),d=isoD(P.seit);if(!n||n<5||!d)return null;
+  const th=n===5?[3,6]:[2,4,6];let s=1,next=null;
+  for(const y of th){const t=addY(d,y);if(t<=at)s++;else{next=t;break}}
+  const yrs=Math.floor((at-d)/31557600000)+1;
+  return {s,max:th.length+1,next,yrs};
+}
+/* Monatsgehalt im Monat y/m: eigener Betrag, im TVöD auf Wunsch aus der Tabelle mit Stufenaufstieg */
+function monthlyAt(c,y,m){
+  const P=c.prof||{},own=+c.monthly||0;
+  if(c.tarif==="tvoed"&&P.auto==="1"){const row=TVOED_VKA[String(P.eg||"").toUpperCase()];
+    if(row){const st=tvStufe(P,new Date(y,m+1,0,23)).s;const v=st?row[st-1]:0;if(v>0){const h=+c.hours||39;return Math.round(v*Math.min(1,h/39)*100)/100}}}
+  return own;
+}
+function countType(y,m,t){let n=0;for(let i=1;i<=new Date(y,m+1,0).getDate();i++){const sh=state.shifts[dk(y,m,i)];if(sh&&sh.t===t)n++}return n}
+/* Einmalzahlungen im Monat: aus dem Tarifprofil und aus deinen eigenen Sonderzahlungen */
+function oneOffs(c,y,m){
+  const P=c.prof||{},L=[];const monthly=isMonth(c)?monthlyAt(c,y,m):(+c.wage||0)*(+c.hours||39)*4.348;
+  if(!(monthly>0))return L;
+  const z=zugFor(c,y,m);if(z>0)L.push({n:"EVG-ZUG",v:z});
+  /* Jahreszahlungen im November richten sich nach dem September */
+  const sep=isMonth(c)?monthlyAt(c,y,8):monthly;
+  if((c.tarif==="dbevg"||c.tarif==="dbgdl")&&m===10){const f=P.modell==="13"?1:P.modell==="12.5"?0.5:0;if(f>0)L.push({n:"Jährliche Zuwendung",v:Math.round(sep*f*100)/100})}
+  if((c.tarif==="tvoed"||c.tarif==="tvl")&&m===10){const pct=P.jsz!=null&&P.jsz!==""?+P.jsz:(c.tarif==="tvoed"?85:0);if(pct>0)L.push({n:"Jahressonderzahlung",v:Math.round(sep*pct)/100})}
+  if(c.tarif==="chemie"){
+    if(m===10){const pct=P.jl!=null&&P.jl!==""?+P.jl:95;if(pct>0)L.push({n:"Jahresleistung",v:Math.round(sep*pct)/100})}
+    const u=countType(y,m,"U"),ug=P.ug!=null&&P.ug!==""?+P.ug:40;if(u>0&&ug>0)L.push({n:"Urlaubsgeld",v:u*ug})}
+  (c.extras||[]).forEach(x=>{if(+x.mo===m&&+x.v>0)L.push({n:x.n||"Sonderzahlung",v:x.u==="pct"?Math.round(monthly*x.v)/100:+x.v})});
+  return L;
+}
+
 /* EVG-ZUG: Zusatzgeld der EVG bei der DB, im Dezember. Schichtarbeit (ZUG-S): 2026 2,6 %, ab 2027 4,6 % des Jahrestabellenentgelts
    (mit 2 freien Tagen statt Geld 3,73 %). Ohne Schicht ab 2027: 2,0 %. Quelle: evg-online.org/unsere-themen/dein-geld/evg-zug */
 function zugFor(c,y,m){
@@ -830,7 +901,7 @@ function zugFor(c,y,m){
 function payout(y,m){
   const c=cfg(),dl=+(c.rules.delay??1),back=new Date(y,m-dl,1);
   const T=monthTotals(y,m),B=dl>0?monthTotals(back.getFullYear(),back.getMonth()):T;
-  const base=isMonth(c)?(+c.monthly||0):T.base,S=itemSums(c);
+  const base=isMonth(c)?monthlyAt(c,y,m):T.base,S=itemSums(c);
   const cash=base+S.plus-S.umw-S.umwSt,svB=base+S.plus-S.umw+S.gwv,taxB=svB-S.umwSt;
   const t=taxCfg(c),np=(tb,sb)=>netto({brutto:tb,sv:sb,stkl:+t.stkl,kinder:+t.kinder,kirche:!!t.kirche,land:c.land,kvz:+t.kvz,kinderlos23:!!t.kinderlos23,pvKinder:+t.pvKinder});
   const ded=n=>n.lst+n.soli+n.kist+n.sv;
@@ -840,9 +911,9 @@ function payout(y,m){
   const n1=np(taxB+zuTaxable,svB+zuTaxable);
   const zuAbz=ded(n1)-ded(n0),zuNet=B.zu-zuAbz;
   /* Einmalzahlung EVG-ZUG: Steuer nach Jahresrechnung (Unterschied mit und ohne Zahlung), Sozialabgaben mit dem gleichen Satz wie das Gehalt */
-  const one=zugFor(c,y,m);let oneNet=0;
+  const OO=oneOffs(c,y,m),one=OO.reduce((a,x)=>a+x.v,0);let oneNet=0;
   if(one>0){const nA=np(taxB+one/12,svB+one/12),tx=n=>n.lst+n.soli+n.kist;oneNet=one-(tx(nA)-tx(n0))*12-(svB>0?one*n0.sv/svB:0)}
-  return{delay:dl,back,base,S,cash,n0,salNet,ded0:ded(n0),zu:B.zu,taxfree,zuAbz,zuNet,one,oneNet,total:salNet+zuNet+oneNet};
+  return{delay:dl,back,base,S,cash,n0,salNet,ded0:ded(n0),zu:B.zu,taxfree,zuAbz,zuNet,one,oneNet,OO,total:salNet+zuNet+oneNet};
 }
 /* Stundensatz für Zuschläge: Monatsentgelt geteilt durch (Wochenstunden x 4,348), wie im TVöD */
 const derivedRate=c=>(+c.hours>0)?(+c.monthly||0)/(+c.hours*4.348):0;
@@ -862,7 +933,7 @@ function monthTotals(y,m){
     T.paid+=r.paid;T.base+=r.base;T.zu+=r.zu;T.taxfree+=r.taxfree;
     for(const x in r.m)T.m[x]+=r.m[x];for(const x in r.e)T.e[x]+=r.e[x];
   }
-  if(isMonth(cfg()))T.base=+cfg().monthly||0;
+  if(isMonth(cfg()))T.base=monthlyAt(cfg(),y,m);
   /* Monatspauschalen, z. B. Bahn: pers. Nachtzulage oder Schichtzulage */
   const R=cfg().rules;T.e.month=0;
   if(R.roundMonth){/* Zulagenstunden im Monat auf ganze Stunden runden (Bahn) */
@@ -885,7 +956,7 @@ function render(){
   const onDay=payWhen(c,y,m);
   $("hLbl").textContent=`Aufs Konto ${onDay} ca.`;
   $("hNetto").textContent=eur0(P.total);
-  $("hBrutto").textContent=`Gehalt netto ${eur0(P.salNet)} + Zulagen netto ${eur0(P.zuNet)}`+(P.one>0?` + EVG-ZUG ${eur0(P.oneNet)}`:"");
+  $("hBrutto").textContent=`Gehalt netto ${eur0(P.salNet)} + Zulagen netto ${eur0(P.zuNet)}`+(P.one>0?` + ${P.OO.length===1?P.OO[0].n:"Sonderzahlungen"} ${eur0(P.oneNet)}`:"");
   const A=(state.actual||{})[`${y}-${pad(m+1)}`];
   if(A){$("hLbl").textContent=`Aufs Konto ${onDay} laut Abrechnung`;$("hNetto").textContent=eur0(A.total);$("hBrutto").textContent=A.zu>0?`Gehalt netto ${eur0(A.sal)} + Zulagen netto ${eur0(A.zu)}`:`Netto ${eur0(A.sal)}`}
   $("hZu").textContent=`+${eur0(T.zu)} Zuschläge im ${MONTHS[m]}`;
@@ -894,7 +965,7 @@ function render(){
    L.push(["Steuern und Sozialabgaben","−"+eur(P.ded0)]);
    if(S.netAbz>0)L.push(["Abzüge vom Netto","−"+eur(S.netAbz)]);
    if(S.netPlus>0)L.push(["Zuschüsse netto","+"+eur(S.netPlus)]);
-   L.push(["Gehalt netto",eur(P.salNet),"sub"],[`+ Zulagen aus ${dl>0?bm:MONTHS[m]} netto`,P.zu>0.004?"+"+eur(P.zuNet):"keine Schichten eingetragen"],...(P.one>0?[[`+ EVG-ZUG netto (brutto ${eur0(P.one)})`,"+"+eur(P.oneNet)]]:[]),...(A?[["Zulo Schätzung",eur(P.total)],["Laut deiner Abrechnung",eur(A.total),"total"]]:[["Gesamt aufs Konto",eur(P.total),"total"]]));
+   L.push(["Gehalt netto",eur(P.salNet),"sub"],[`+ Zulagen aus ${dl>0?bm:MONTHS[m]} netto`,P.zu>0.004?"+"+eur(P.zuNet):"keine Schichten eingetragen"],...(P.one>0?[[`+ ${P.OO.map(x=>x.n).join(", ")} netto (brutto ${eur0(P.one)})`,"+"+eur(P.oneNet)]]:[]),...(A?[["Zulo Schätzung",eur(P.total)],["Laut deiner Abrechnung",eur(A.total),"total"]]:[["Gesamt aufs Konto",eur(P.total),"total"]]));
    const aNote=A?`<p class="note" style="margin:4px 0 2px">Echter Betrag aus deiner Abrechnung: Gehalt netto ${eur(A.sal)}${A.zu>0?` + Zulagen${A.zuMo?" aus "+MONTHS[A.zuMo-1]:""} netto ${eur(A.zu)}`:""}.${Math.abs(A.total-P.total)>=1?` Die Schätzung liegt ${eur(Math.abs(A.total-P.total))} ${A.total>P.total?"darunter":"darüber"}, meist wegen Zahlungen, die nicht an Schichtzeiten hängen, etwa Prämien, Fahrentschädigung oder Überzeitzulage.`:""}</p>`:"";
    $("payCard").innerHTML=`<div class="sec" style="margin:8px 0 2px">Dein Geld im ${MONTHS[m]}</div>`+rows(L)+aNote+`<button type="button" class="linkbtn" id="payMore" style="margin:2px 0 10px">Ganze Rechnung ansehen</button>`;
    $("payMore").onclick=()=>showView("sum");}
@@ -958,7 +1029,7 @@ function renderSummary(T){
    if(P.taxfree>0.004)L.push(["davon steuer und abgabenfrei",eur(P.taxfree),"good"]);
    if(P.zuAbz>0.004)L.push(["Abzüge auf die übrigen Zulagen","−"+eur(P.zuAbz)]);
    L.push([`+ Zulagen netto`,eur(P.zuNet),"sub"]);
-   if(P.one>0)L.push(["+ EVG-ZUG brutto (Zusatzgeld)",eur(P.one)],["+ EVG-ZUG netto",eur(P.oneNet),"sub"]);
+   if(P.one>0){P.OO.forEach(x=>L.push([`+ ${x.n} brutto`,eur(x.v)]));L.push(["+ Sonderzahlungen netto",eur(P.oneNet),"sub"])}
    L.push([`Aufs Konto ${payWhen(cfg(),y,m)} ca.`,eur(P.total),"total"]);
    if(dl>0)L.push([`Zuschläge aus ${MONTHS[m]} kommen im`,mn(fwd)]);
    $("sPay").innerHTML=rows(L);}
@@ -973,17 +1044,45 @@ function openSheet(k){
   if(TYPES[editing.sh.t]?.work)editing.sh.t="W";
   $("shTitle").textContent=dt.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
   $("shMeta").textContent=holName(dt,cfg().land)||(ex?"Schicht bearbeiten":"Neue Schicht");
-  $("bDel").hidden=!ex;
+  $("bDel").hidden=!ex;editing.hadEx=!!ex;
   const opts=[["W","Arbeit","var(--accent)"],...Object.entries(TYPES).filter(([c,t])=>!t.work).map(([c,t])=>[c,t.name,t.color])];
   $("types").innerHTML=opts.map(([c,n,col])=>`<button type="button" data-t="${c}" aria-pressed="${editing.sh.t===c}"><i style="background:${col}"></i>${n}</button>`).join("");
   $("types").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    const c=b.dataset.t;editing.sh=c==="W"?{t:"W",s:editing.sh.s||"",e:editing.sh.e||"",b:editing.sh.b||0}:{t:c};fillTimes();
+    const c=b.dataset.t;editing.sh=c==="W"?{t:"W",s:editing.sh.s||"",e:editing.sh.e||"",b:editing.sh.b||0}:{t:c};fillTimes();if(editing.rep){repWdDefault();repDraw()}
     $("types").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
   $("quick").innerHTML=["F","S","N"].map(c=>`<button type="button" data-q="${c}">${TYPES[c].name} ${state.tpl[c].s} bis ${state.tpl[c].e}</button>`).join("");
   $("quick").querySelectorAll("button").forEach(b=>b.onclick=()=>{const t=state.tpl[b.dataset.q];editing.sh={t:"W",s:t.s,e:t.e,b:t.b};editing.autoB=false;fillTimes()});
-  fillTimes();openLayer("sheet");
+  fillTimes();repInit();openLayer("sheet");
   if(!ex)setTimeout(()=>{try{$("tStart").focus()}catch(e){}},250);
 }
+/* Mehrere Tage auf einmal: vom gewählten Tag bis zu einem Datum, nur an den gewählten Wochentagen */
+const WDN=["Mo","Di","Mi","Do","Fr","Sa","So"];
+function repInit(){
+  const [y,m,d]=editing.k.split("-").map(Number),dt=new Date(y,m-1,d),wd=(dt.getDay()+6)%7;
+  const sun=new Date(y,m-1,d+(6-wd));
+  editing.rep={on:false,to:keyOf(sun),wd:[true,true,true,true,true,true,true],touched:false};
+  $("repOn").checked=false;$("repBox").hidden=true;$("repTo").value=editing.rep.to;$("repTo").min=editing.k;
+  repWdDefault();repDraw();
+}
+function repWdDefault(){if(!editing||!editing.rep||editing.rep.touched)return;const t=editing.sh.t;editing.rep.wd=(t==="U"||t==="K")?[true,true,true,true,true,false,false]:[true,true,true,true,true,true,true]}
+function repDays(){
+  const R=editing.rep,[y,m,d]=editing.k.split("-").map(Number),out=[];
+  const end=R.to&&/^\d{4}-\d{2}-\d{2}$/.test(R.to)?new Date(R.to+"T12:00:00"):null;
+  if(!R.on||!end)return [editing.k];
+  for(let i=0;i<400;i++){const x=new Date(y,m-1,d+i);if(x>end)break;if(i===0||R.wd[(x.getDay()+6)%7])out.push(keyOf(x))}
+  return out;
+}
+function repDraw(){
+  const R=editing.rep;
+  $("repWd").innerHTML=WDN.map((n,i)=>`<button type="button" data-w="${i}" aria-pressed="${R.wd[i]}">${n}</button>`).join("");
+  $("repWd").querySelectorAll("button").forEach(b=>b.onclick=()=>{const i=+b.dataset.w;R.wd[i]=!R.wd[i];R.touched=true;repDraw()});
+  const days=repDays(),over=days.filter(k=>k!==editing.k&&state.shifts[k]&&!state.shifts[k].demo).length;
+  $("repInfo").textContent=R.on?`${days.length} ${days.length===1?"Tag":"Tage"} werden eingetragen${over?`, davon ${over} mit vorhandenem Eintrag, der ersetzt wird`:""}. Löschen gilt dann auch für alle diese Tage.`:"";
+  $("bSave").textContent=R.on&&days.length>1?`Für ${days.length} Tage speichern`:"Speichern";
+  $("bDel").hidden=!(editing.hadEx||(R.on&&days.some(k=>state.shifts[k])));$("bDel").textContent=R.on&&days.length>1?"Alle löschen":"Löschen";
+}
+$("repOn").onchange=e=>{editing.rep.on=e.target.checked;$("repBox").hidden=!e.target.checked;repWdDefault();repDraw()};
+$("repTo").onchange=e=>{editing.rep.to=e.target.value;repDraw()};
 /* Schichtart automatisch aus den Zeiten: Nacht, wenn sie nachts beginnt oder überwiegend zwischen 22 und 6 Uhr liegt; sonst Früh bei Beginn vor 10 Uhr, sonst Spät */
 function classify(s,e){
   const a=toMin(s);let b=toMin(e);if(a==null||b==null)return null;if(b<=a)b+=1440;
@@ -1041,8 +1140,9 @@ $("scrim").onclick=closeSheet;$("bCancel").onclick=closeSheet;
 $("bSave").onclick=()=>{readTimes();const sh={...editing.sh};delete sh.demo;delete sh.work;
   if(sh.t==="W"){const k=classify(sh.s,sh.e);if(!k)return;sh.t=k}
   if(TYPES[sh.t].work&&validate(shiftFor(sh)))return;
-  state.shifts[editing.k]=sh;save();closeSheet();render();toast("Gespeichert")};
-$("bDel").onclick=()=>{delete state.shifts[editing.k];save();closeSheet();render();toast("Gelöscht")};
+  const days=editing.rep?repDays():[editing.k];days.forEach(k=>{state.shifts[k]={...sh}});
+  save();closeSheet();render();toast(days.length>1?`Für ${days.length} Tage gespeichert`:"Gespeichert")};
+$("bDel").onclick=()=>{const days=editing.rep?repDays():[editing.k];days.forEach(k=>{delete state.shifts[k]});save();closeSheet();render();toast(days.length>1?`${days.length} Tage gelöscht`:"Gelöscht")};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(editing||newsOpen))closeSheet()});
 function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>el.hidden=true,1800)}
 
@@ -1080,7 +1180,7 @@ function renderSettings(){
   {const t=taxCfg(c);$("tStkl").value=t.stkl;$("tKinder").value=t.kinder;$("tKirche").value=t.kirche?"1":"0";$("tKvz").value=t.kvz;$("tPvK").value=t.pvKinder;$("tKl").value=t.kinderlos23?"1":"0";}
   $("modTag").innerHTML=c.modified?`<span class="mod">angepasst</span> <button class="linkbtn" id="restore">Vorlage wiederherstellen</button>`:"";
   if(c.modified)$("restore").onclick=()=>{c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Vorlage wiederhergestellt")};
-  renderRules();renderTpl();renderItems();enhanceAll();
+  renderRules();renderTpl();renderItems();renderProf();renderXtra();enhanceAll();
 }
 function unitSel(id,u){return `<select id="${id}" aria-label="Einheit"><option value="pct"${u==="pct"?" selected":""}>%</option><option value="eur"${u==="eur"?" selected":""}>€/Std</option></select>`}
 function renderRules(){
@@ -1111,6 +1211,121 @@ function renderRules(){
     $("restore").onclick=()=>{const c=cfg();c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Vorlage wiederhergestellt")};
   }));
 }
+/* ---------- Tarifprofil Oberfläche ---------- */
+const WAHL={ent:"Entgelt (mehr Geld)",u6:"6 Tage mehr Urlaub",u12:"12 Tage mehr Urlaub",az:"Kürzere Arbeitszeit"};
+const MODELL={"12":"12er","12.5":"12,5er","13":"13er"};
+const EGS_TV=["E1","E2","E3","E4","E5","E6","E7","E8","E9a","E9b","E9c","E10","E11","E12","E13","E14","E15"];
+const opt=(a)=>a.map(x=>Array.isArray(x)?x:[x,x]);
+const PROF_FIELDS={
+  dbevg:[["fgr","Funktionsgruppe","sel",opt([["","weiß nicht"],["1","FGr 1"],["2","FGr 2"],["3","FGr 3"],["4","FGr 4"],["5","FGr 5"],["6","FGr 6"],["7","FGr 7"]]),"Steht im Arbeitsvertrag. Jede Funktionsgruppe hat eigene Tabellen"],
+    ["eg","Entgeltgruppe","txt",null,"Auf der Abrechnung, z. B. 559"],["stufe","Entgeltstufe","num",null,"Auf der Abrechnung"],
+    ["beginn","Beschäftigt seit","date",null,"Beschäftigungsbeginn auf der Abrechnung"],
+    ["modell","Auszahlungsmodell","sel",opt([["12","12er"],["12.5","12,5er"],["13","13er"]]),"Steht auf der Abrechnung"],
+    ["wahl","Wahlmodell","sel",opt([["ent",WAHL.ent],["u6",WAHL.u6],["u12",WAHL.u12],["az",WAHL.az]]),"Steht auf der Abrechnung als Wahlmodell Arbeitszeit"]],
+  dbgdl:[["eg","Entgeltgruppe","txt",null,"Auf der Abrechnung"],["stufe","Entgeltstufe","num",null,"Auf der Abrechnung"],
+    ["beginn","Beschäftigt seit","date",null,"Beschäftigungsbeginn auf der Abrechnung"],
+    ["modell","Auszahlungsmodell","sel",opt([["12","12er"],["12.5","12,5er"],["13","13er"]]),"Steht auf der Abrechnung"],
+    ["az","Gewählte Wochenstunden","num",null,"Wahlmodell der GDL: 2026 sind 37 Stunden der Standard, bis 40 möglich"]],
+  tvoed:[["eg","Entgeltgruppe","sel",opt([["","bitte wählen"],...EGS_TV]),"Steht im Arbeitsvertrag und auf der Abrechnung"],
+    ["stufe","Stufe","sel",opt([["","bitte wählen"],"1","2","3","4","5","6"]),"Steht auf der Abrechnung"],
+    ["seit","In dieser Stufe seit","date",null,"Ab dann zählen die Jahre bis zur nächsten Stufe"],
+    ["jsz","Jahressonderzahlung","sel",opt([["85","85 % (VKA)"],["90","90 % (E1 bis E8, Pflege und Krankenhaus)"],["0","nicht einrechnen"]]),"Mit dem Gehalt für November"],
+    ["auto","Gehalt aus der Tabelle","sel",opt([["0","Nein, mein eingetragener Betrag"],["1","Ja, VKA 2026 mit Stufenaufstieg"]]),"Zulo erhöht das Gehalt dann im Monat der nächsten Stufe"]],
+  tvl:[["eg","Entgeltgruppe","sel",opt([["","bitte wählen"],...EGS_TV]),"Steht im Arbeitsvertrag und auf der Abrechnung"],
+    ["stufe","Stufe","sel",opt([["","bitte wählen"],"1","2","3","4","5","6"]),"Steht auf der Abrechnung"],
+    ["seit","In dieser Stufe seit","date",null,"Ab dann zählen die Jahre bis zur nächsten Stufe"],
+    ["jsz","Jahressonderzahlung in %","num",null,"Satz laut TV-L für deine Entgeltgruppe, mit dem Gehalt für November"]],
+  chemie:[["eg","Entgeltgruppe","sel",opt([["","bitte wählen"],"E1","E2","E3","E4","E5","E6","E7","E8","E9","E10","E11","E12","E13"]),"Steht im Arbeitsvertrag"],
+    ["seit","In dieser Entgeltgruppe seit","date",null,"Die Stufen steigen nach Tätigkeitsjahren"],
+    ["jl","Jahresleistung in %","num",null,"Tariflich mindestens 95 % eines Monatsentgelts, mit dem Gehalt für November. Betrieblich oft mehr"],
+    ["ug","Urlaubsgeld je Urlaubstag","num",null,"Tariflich 40 € je Urlaubstag. Zulo zählt die Tage mit U im Kalender"]],
+  gesetz:[["eg","Entgeltgruppe","txt",null,"Falls vorhanden"],["seit","Beschäftigt seit","date",null,""]],
+  eigen:[["eg","Entgeltgruppe","txt",null,"Falls vorhanden"],["stufe","Stufe","num",null,""],["seit","In dieser Stufe seit","date",null,""]]
+};
+function profShow(k,v){
+  if(v==null||v==="")return "";
+  if(k==="modell")return MODELL[v]||v;if(k==="wahl")return WAHL[v]||v;if(k==="beginn"||k==="seit")return deDate(v);
+  if(k==="zug")return {s:"Schichtarbeit (ZUG-S)",s2:"Schicht, 2 freie Tage",n:"Ohne Schicht",off:"Nicht einrechnen"}[v]||v;
+  return String(v);
+}
+function renderProf(){
+  const c=cfg(),P=c.prof=c.prof||{},F=PROF_FIELDS[c.tarif]||[];
+  $("profCard").innerHTML=F.map(([k,l,ty,o,hint])=>{const v=P[k]??(k==="jsz"&&c.tarif==="tvoed"?"85":k==="jl"&&c.tarif==="chemie"?"95":k==="ug"&&c.tarif==="chemie"?"40":k==="modell"?"12":k==="auto"?"0":"");
+    const ctl=ty==="sel"?`<select id="pf_${k}">${o.map(([a,b])=>`<option value="${esc(a)}"${String(v)===String(a)?" selected":""}>${esc(b)}</option>`).join("")}</select>`:
+      ty==="date"?`<input id="pf_${k}" type="date" value="${esc(v)}">`:
+      `<input id="pf_${k}" type="text" ${ty==="num"?'data-num="1" inputmode="decimal"':'autocapitalize="characters"'} value="${esc(String(v))}">${k==="jsz"||k==="jl"?'<span class="unit">%</span>':k==="ug"?'<span class="unit">€</span>':k==="az"?'<span class="unit">Std</span>':""}`;
+    return `<label class="f" for="pf_${k}"><span>${l}${hint?`<small>${hint}</small>`:""}</span><span class="inp">${ctl}</span></label>`}).join("")+`<div class="pinfo" id="profInfo"></div>`;
+  F.forEach(([k,,ty])=>{const el=$(`pf_${k}`);el.onchange=()=>{let v=el.value;if(ty==="num")v=v===""?"":(N(v)||0);P[k]=v;save();renderProf();render()}});
+  $("profInfo").innerHTML=profInfo(c);
+  const notes={dbevg:"Quellen: FGr Tarifverträge AGV MOVE und EVG, EVG-ZUG laut EVG. Die Jahresgrenzen der Entgeltstufen stehen in der Anlage deines FGr Tarifvertrags.",
+    dbgdl:"Quelle: GDL Tarifeinigung mit der DB (Wahlmodell bis 40 Stunden, je Stunde 2,7 % mehr).",
+    tvoed:"Quelle: TVöD VKA, Tabelle ab 01.05.2026 und Stufenlaufzeiten laut kommunalforum.de. Im TVöD Bund gelten eigene Werte.",
+    tvl:"Stufenlaufzeiten wie im TVöD. Den Satz der Jahressonderzahlung trägst du selbst ein.",
+    chemie:"Quelle: Chemie Tarifverträge IG BCE laut tarifvertrag-online.de. Die Stufen gelten ab E5."};
+  $("profNote").textContent=notes[c.tarif]||"Trag ein, was auf deiner Abrechnung steht. Sonderzahlungen legst du unten selbst an.";
+}
+function profInfo(c){
+  const P=c.prof||{},now=new Date(),L=[];
+  if(c.tarif==="dbevg"||c.tarif==="dbgdl"){
+    const b=isoD(P.beginn);if(b){const y=Math.floor((now-b)/31557600000);L.push(`Bei der DB seit ${deDate(P.beginn)}, also <b>${y} Jahre</b>.`)}
+    if(P.stufe)L.push(`Entgeltstufe <b>${esc(String(P.stufe))}</b>${P.eg?` in Entgeltgruppe <b>${esc(String(P.eg))}</b>`:""}. Die Stufe steigt nach Tätigkeitsjahren. Die genauen Grenzen stehen in der Anlage deines Tarifvertrags, darum trägst du eine neue Stufe ein, sobald sie auf der Abrechnung steht.`);
+    const md=P.modell||"12";L.push(md==="12"?"12er Modell: Die Jahreszahlung steckt schon in den 12 Monatsgehältern, im November kommt nichts extra.":`${MODELL[md]} Modell: Am 25. November kommt ${md==="13"?"ein ganzes":"ein halbes"} Monatsentgelt dazu. Zulo rechnet das ein.`);
+    if(c.tarif==="dbevg"&&P.wahl&&P.wahl!=="ent")L.push(P.wahl==="u6"?"6 Tage mehr Urlaub: dafür rund 2,6 % weniger Entgelt (Faktor 0,9745 bei Erhöhungen).":P.wahl==="u12"?"12 Tage mehr Urlaub: dafür rund 5,1 % weniger Entgelt (Faktor 0,9489 bei Erhöhungen).":"Kürzere Arbeitszeit: Trag oben deine Wochenstunden und dein Gehalt laut Abrechnung ein.");
+    if(c.tarif==="dbgdl"&&+P.az>37)L.push(`${fmt(+P.az,0)} Stunden statt 37: rund ${fmt((+P.az-37)*2.7,1)} % mehr Entgelt. Das steht schon in deinem Gehalt laut Abrechnung.`);
+  }
+  if(c.tarif==="tvoed"||c.tarif==="tvl"){
+    const st=tvStufe(P,now);
+    if(st.s&&st.from){L.push(`Jetzt <b>Stufe ${st.s}</b>${st.next?`, <b>Stufe ${st.s+1} ab ${st.next.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}</b>`:", das ist die Endstufe"}.`);
+      const row=TVOED_VKA[String(P.eg||"").toUpperCase()];
+      if(c.tarif==="tvoed"&&row){const a=row[st.s-1],b=st.next?row[st.s]:0;L.push(`Laut Tabelle VKA 2026: ${eur0(a)}${b?`, ab der nächsten Stufe ${eur0(b)} (plus ${eur0(b-a)})`:""}. Bei 39 Stunden.`)}}
+    else L.push("Trag Entgeltgruppe, Stufe und das Datum ein, seit dem du in der Stufe bist. Dann zeigt Zulo, wann die nächste Stufe kommt.");
+  }
+  if(c.tarif==="chemie"){const st=chemStufe(P,now);
+    if(st)L.push(`${st.yrs}. Tätigkeitsjahr, <b>Stufe ${st.s} von ${st.max}</b>${st.next?`, nächste Stufe ab <b>${st.next.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}</b>`:""}.`);
+    else if(P.eg&&parseInt(String(P.eg).replace(/\D/g,""),10)<5)L.push("In E1 bis E4 gibt es keine Stufen nach Jahren.");}
+  const y=now.getFullYear(),sum=[];for(let m=0;m<12;m++)oneOffs(c,y,m).forEach(x=>sum.push(`${x.n} ${MONTHS[m]} ${eur0(x.v)}`));
+  if(sum.length)L.push(`Sonderzahlungen ${y}, brutto: ${sum.join(" · ")}.`);
+  return L.map(x=>`<p style="margin:0 0 6px">${x}</p>`).join("");
+}
+function renderXtra(){
+  const c=cfg();c.extras=c.extras||[];
+  $("xtraList").innerHTML=c.extras.length?c.extras.map((x,i)=>`<div class="item">
+    <input type="text" id="xt_n_${i}" value="${esc(x.n||"")}" placeholder="Bezeichnung, z. B. Weihnachtsgeld" aria-label="Bezeichnung">
+    <span class="inp"><input type="text" data-num="1" id="xt_v_${i}" inputmode="decimal" value="${x.v?String(x.v).replace(".",","):""}" aria-label="Betrag"></span>
+    <select id="xt_u_${i}" aria-label="Einheit"><option value="eur"${x.u!=="pct"?" selected":""}>Euro brutto</option><option value="pct"${x.u==="pct"?" selected":""}>Prozent vom Monatsgehalt</option></select>
+    <select id="xt_m_${i}" aria-label="Monat">${MONTHS.map((n,m)=>`<option value="${m}"${+x.mo===m?" selected":""}>Kommt im ${n}</option>`).join("")}</select>
+    <button type="button" class="linkbtn" data-xdel="${i}">Entfernen</button></div>`).join(""):`<p class="note" style="margin:10px 0">Noch keine eigenen Sonderzahlungen.</p>`;
+  c.extras.forEach((x,i)=>{
+    $(`xt_n_${i}`).onchange=e=>{x.n=e.target.value.trim();save();render();renderProf()};
+    $(`xt_v_${i}`).onchange=e=>{x.v=Math.max(0,N(e.target.value)||0);save();render();renderProf()};
+    $(`xt_u_${i}`).onchange=e=>{x.u=e.target.value;save();render();renderProf()};
+    $(`xt_m_${i}`).onchange=e=>{x.mo=+e.target.value;save();render();renderProf()};
+  });
+  $("xtraList").querySelectorAll("[data-xdel]").forEach(b=>b.onclick=()=>{c.extras.splice(+b.dataset.xdel,1);save();renderXtra();renderProf();render()});
+}
+$("addXtra").onclick=()=>{const c=cfg();c.extras=c.extras||[];c.extras.push({n:"",v:0,u:"eur",mo:10});save();renderXtra();try{$(`xt_n_${c.extras.length-1}`).focus()}catch(e){}};
+/* IG Metall Metall und Elektro: T-ZUG A 27,5 % im Juli, T-Geld 18,4 % im Juli, T-ZUG B im Februar (Festbetrag je Tarifgebiet, rund 845 bis 952 €) */
+$("tplMetall").onclick=()=>{const c=cfg();c.extras=c.extras||[];
+  [["T-ZUG A",27.5,"pct",6],["T-Geld",18.4,"pct",6],["T-ZUG B",900,"eur",1]].forEach(([n,v,u,mo])=>{if(!c.extras.some(x=>x.n===n))c.extras.push({n,v,u,mo})});
+  save();renderXtra();renderProf();render();toast("IG Metall Vorlage eingetragen")};
+/* Tarifprofil aus der Abrechnung */
+function profFromSlip(lines){
+  const all=lines.join("\n"),out=[];
+  const nextVal=(re,vre)=>{for(let i=0;i<lines.length-1;i++){if(re.test(lines[i])){for(let j=i+1;j<Math.min(i+3,lines.length);j++){const m=lines[j].trim().match(vre);if(m)return m[1]}}}return null};
+  let m=all.match(/entgeltstufe\s*:?\s*(\d{1,2})\b/i)||all.match(/\bstufe\s*:?\s*(\d)\b/i);
+  if(m)out.push({k:"stufe",l:"Stufe",v:+m[1],show:m[1]});
+  let eg=(all.match(/entgeltgruppe\s*:?\s*((?:EG?|P|S)\s?\d{1,2}[a-c]?|\d{3})(?=\s|$|\/)/i)||[])[1];
+  if(!eg)eg=nextVal(/^\s*entgeltgruppe\b/i,/^(\d{3}|(?:EG?|P|S)\s?\d{1,2}[a-c]?)\b/i);
+  if(eg){eg=eg.replace(/\s+/g,"").replace(/^EG/i,"E").replace(/^e/,"E");out.push({k:"eg",l:"Entgeltgruppe",v:eg,show:eg})}
+  const bg=nextVal(/beschäftigungsbeginn|eintrittsdatum|eintritt\b/i,/^(\d{2}\.\d{2}\.\d{2,4})\b/);
+  if(bg){const [d,mo,y]=bg.split(".");let yy=+y;if(y.length===2)yy=yy+(yy<=new Date().getFullYear()%100?2000:1900);const iso=`${yy}-${mo}-${d}`;out.push({k:"beginn",l:"Beschäftigt seit",v:iso,show:deDate(iso)})}
+  m=all.match(/(12,5|12|13)er\s*-?\s*auszahlungsmodell/i);if(m){const v=m[1]==="12,5"?"12.5":m[1];out.push({k:"modell",l:"Auszahlungsmodell",v,show:MODELL[v]})}
+  m=all.match(/wahlmodell[^:\n]*:\s*([A-Za-zäöüÄÖÜ]+)/i);
+  if(m){const w=/entgelt|geld/i.test(m[1])?"ent":/arbeitszeit|stunden/i.test(m[1])?"az":/urlaub/i.test(m[1])?"u6":null;if(w)out.push({k:"wahl",l:"Wahlmodell",v:w,show:m[1]})}
+  if(/\bzug-?s\b/i.test(all))out.push({k:"zug",l:"EVG-ZUG",v:"s",show:"Schichtarbeit (ZUG-S)"});
+  return out;
+}
+
 function renderItems(){
   const c=cfg();c.items=c.items||[];
   $("itemsList").innerHTML=c.items.length?c.items.map((it,i)=>`<div class="item">
@@ -1498,6 +1713,7 @@ function slipParse(lines){
   {const main=Object.values(runs).filter(r=>r.nr===1).map(r=>({r,ue:totOf(/^(?:überweisung|ueberweisung|auszahlungsbetrag|auszahlung)\b/i,r)})).find(x=>x.ue>0);
    if(main){const r=main.r,sal=totOf(/^netto\b/i,r)||main.ue,nach=totOf(/^übertr\w*\.?\s*nachber/i,r)||0,nr=Object.values(runs).find(x=>x.nr>=2);
      R.pay={ym:`${r.y}-${pad(r.mo)}`,mo:r.mo,y:r.y,total:main.ue,sal:nach>0?sal:main.ue,zu:nach,zuMo:nr?nr.mo:null}}}
+  R.prof=profFromSlip(lines);
   R.check=dbCheck;R.src=src;
   return R;
 }
@@ -1507,10 +1723,11 @@ const ZLBL={night:"Nacht",sun:"Sonntag",hol:"Feiertag",sat:"Samstag",eve:"24. un
 function slipRender(){
   const R=slip,c=cfg(),t=taxCfg(c);let h="";
   const cur={stkl:["I","II","III","IV","V","VI"][(+t.stkl||1)-1],kinder:fmt(+t.kinder||0,1),kirche:t.kirche?"ja":"nein",kvz:fmt(+t.kvz||0)+" %",hours:fmt(+c.hours||0,1)+" Std",monthly:eur(+c.monthly||0),wage:eur(+c.wage||0)};
-  const n=R.base.length+R.zu.length+R.other.length+R.ded.length+(R.pay?1:0)+(R.abs?1:0);
+  const n=R.base.length+R.zu.length+R.other.length+R.ded.length+(R.pay?1:0)+(R.abs?1:0)+R.prof.length;
   if(!n){$("slRes").innerHTML=`<div class="empty">Zulo hat in dieser Abrechnung keine Werte erkannt. Ist sie eingescannt oder ein Foto? Dann enthält sie keinen lesbaren Text. Probier die PDF aus deinem Mitarbeiterportal oder trag die Werte unten von Hand ein.</div>`;$("slApply").hidden=true;return}
   if(R.pay)h+=`<div class="sec">Was wirklich aufs Konto kam</div><div class="found"><label class="fi"><input type="checkbox" data-g="pay" data-i="0" checked><span><b>${MONTHS[R.pay.mo-1]} ${R.pay.y}: ${eur(R.pay.total)}</b><small>${R.pay.zu>0?`Gehalt netto ${eur(R.pay.sal)} + Zulagen${R.pay.zuMo?" aus "+MONTHS[R.pay.zuMo-1]:""} netto ${eur(R.pay.zu)}`:`Netto ${eur(R.pay.sal)}`}. Zulo zeigt für diesen Monat dann den echten Betrag statt der Schätzung.</small></span></label></div>`;
   if(R.abs)h+=`<div class="sec">Urlaub und Krankheit</div><div class="found"><label class="fi"><input type="checkbox" data-g="abs" data-i="0" checked><span><b>${fmt(R.abs.rate)} € Zulagen je Stunde</b><small>Für ${fmt(R.abs.h)} Std Urlaub oder Krankheit kamen ${eur(R.abs.a)} (Urlaubsentgelt, Entgeltfortzahlung). Zulo rechnet das ab jetzt für jeden Tag mit U oder K im Kalender mit ein. Bisher in Zulo: ${fmt(+c.absRate||0)} €</small></span></label></div>`;
+  if(R.prof.length){const pc=c.prof||{};h+=`<div class="sec">Tarifprofil</div><div class="found">`+R.prof.map((b,i)=>`<label class="fi"><input type="checkbox" data-g="prof" data-i="${i}" checked><span><b>${esc(b.l)}: ${esc(b.show)}</b><small>Bisher in Zulo: ${esc(profShow(b.k,pc[b.k])||"nicht eingetragen")}</small></span></label>`).join("")+`</div>`}
   if(R.base.length)h+=`<div class="sec">Grunddaten</div><div class="found">`+R.base.map((b,i)=>`<label class="fi"><input type="checkbox" data-g="base" data-i="${i}" checked><span><b>${esc(b.l)}: ${esc(b.show)}</b><small>Bisher in Zulo: ${esc(cur[b.k]??"")}${b.src?` · Zeile „${esc(b.src)}“`:""}</small></span></label>`).join("")+`</div>`;
   if(R.zu.length)h+=`<div class="sec">Zuschläge mit Satz</div><div class="found">`+R.zu.map((z,i)=>{
     const how=z.r!=null?`${fmt(z.r)} € je ${z.kind==="shift"?"Schicht":"Stunde"}`:`${fmt(z.pct,0)} %`;
@@ -1541,6 +1758,7 @@ function slipApply(){
     else if(a==="remove")dropItem(o.l)});
   if(R.pay&&on("pay",0)){state.actual=state.actual||{};state.actual[R.pay.ym]={total:R.pay.total,sal:R.pay.sal,zu:R.pay.zu,zuMo:R.pay.zuMo};nB++}
   if(R.abs&&on("abs",0)){c.absRate=R.abs.rate;nB++}
+  R.prof.forEach((b,i)=>{if(!on("prof",i))return;nB++;if(b.k==="zug")c.zug=b.v;else{c.prof=c.prof||{};c.prof[b.k]=b.v}});
   R.ded.forEach((d,i)=>{const a=on("ded",i);if(a&&a!=="skip")addItem(d.l,Math.round(d.a*100)/100,a)});
   state.cfg=c;save();closeSheet();renderSettings();render();
   toast(`Übernommen: ${nB+nR+nI} Werte`);
