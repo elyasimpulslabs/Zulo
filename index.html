@@ -222,6 +222,7 @@ textarea{width:100%;min-height:90px;font:500 16px ui-monospace,monospace;resize:
 .phint .ph3{margin:0 0 10px;font-size:12px;color:var(--muted)}
 .slwarn{background:color-mix(in srgb,var(--bad) 14%,var(--surface-2));border:1px solid color-mix(in srgb,var(--bad) 45%,var(--line));border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 10px}
 .slnote{background:color-mix(in srgb,var(--accent) 10%,var(--surface-2));border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 10px}
+.row .v{white-space:nowrap}
 .rep{margin:4px 0 10px;border-top:1px solid var(--line);padding-top:10px}
 .rep .repT{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;min-height:40px}
 .rep .repT input{width:22px;height:22px;accent-color:var(--accent)}
@@ -966,7 +967,7 @@ function render(){
    if(S.netAbz>0)L.push(["Abzüge vom Netto","−"+eur(S.netAbz)]);
    if(S.netPlus>0)L.push(["Zuschüsse netto","+"+eur(S.netPlus)]);
    L.push(["Gehalt netto",eur(P.salNet),"sub"],[`+ Zulagen aus ${dl>0?bm:MONTHS[m]} netto`,P.zu>0.004?"+"+eur(P.zuNet):"keine Schichten eingetragen"],...(P.one>0?[[`+ ${P.OO.map(x=>x.n).join(", ")} netto (brutto ${eur0(P.one)})`,"+"+eur(P.oneNet)]]:[]),...(A?[["Zulo Schätzung",eur(P.total)],["Laut deiner Abrechnung",eur(A.total),"total"]]:[["Gesamt aufs Konto",eur(P.total),"total"]]));
-   const aNote=A?`<p class="note" style="margin:4px 0 2px">Echter Betrag aus deiner Abrechnung: Gehalt netto ${eur(A.sal)}${A.zu>0?` + Zulagen${A.zuMo?" aus "+MONTHS[A.zuMo-1]:""} netto ${eur(A.zu)}`:""}.${Math.abs(A.total-P.total)>=1?` Die Schätzung liegt ${eur(Math.abs(A.total-P.total))} ${A.total>P.total?"darunter":"darüber"}, meist wegen Zahlungen, die nicht an Schichtzeiten hängen, etwa Prämien, Fahrentschädigung oder Überzeitzulage.`:""}</p>`:"";
+   const aNote=A?`<p class="note" style="margin:4px 0 2px">Echter Betrag aus deiner Abrechnung: Gehalt netto ${eur(A.sal)}${A.zu>0?` + Zulagen${A.zuMo?" aus "+MONTHS[A.zuMo-1]:""} netto ${eur(A.zu)}`:""}.${Math.abs(A.total-P.total)>=1?` Die Schätzung liegt ${eur(Math.abs(A.total-P.total))} ${A.total>P.total?"darunter":"darüber"}, meist wegen Zahlungen, die nicht an Schichtzeiten hängen, etwa Prämien, Fahrentschädigung oder Überzeitzulage.`:""}${Math.abs(A.sal-P.salNet)>=1?` <b>Beim Gehalt netto rechnet Zulo ${eur(P.salNet)}, auf der Abrechnung stehen ${eur(A.sal)}.</b> Lies die Abrechnung unter Lohn neu ein, dann stimmen Rad, Leasing und Krankenkasse wieder.`:""}</p>`:"";
    $("payCard").innerHTML=`<div class="sec" style="margin:8px 0 2px">Dein Geld im ${MONTHS[m]}</div>`+rows(L)+aNote+`<button type="button" class="linkbtn" id="payMore" style="margin:2px 0 10px">Ganze Rechnung ansehen</button>`;
    $("payMore").onclick=()=>showView("sum");}
   $("hTf").textContent=dl>0?(()=>{const f=new Date(y,m+dl,1);return `brutto, kommen ${payWhen(c,f.getFullYear(),f.getMonth())} aufs Konto`})():(T.taxfree>0.5?`davon ca. ${eur0(T.taxfree)} steuerfrei`:"");
@@ -1698,6 +1699,8 @@ function slipParse(lines){
     if(/urlaubsentgelt|urlaubslohn|^efz\b|entgeltfortz|lohnfortz|krankenlohn/i.test(label)){const hm=line.match(/(\d+,\d{1,2})\s*(?:st|std|h)\b/i);if(hm&&amt>0){absA+=amt;absH+=N(hm[1])}continue}
     const key=label.toLowerCase()+(isVar?"|n":"");if(seen.has(key))continue;seen.add(key);
     if(amt<0&&isVar&&!/rad|bike|leasing|pc\b/i.test(label))continue;
+    /* Geldwerter Vorteil (z. B. Firmenrad): wird nur versteuert und verbeitragt, nicht ausgezahlt */
+    if(/\bgwv\b|geldwert|sachbezug|dienstwagen|firmenwagen/i.test(label)&&amt>0){if(!isVar)R.ded.push({l:label.replace(/(\s+\d{3})?(\s+[A-Z]{1,2})?$/,"").trim(),a:amt,t:"gwv",on:true});continue}
     if(amt<0&&isVar)continue;
     if(amt<0){
       const t=/pc|laptop|notebook|handy|smartphone|tablet|computer/i.test(label)&&/leasing|überl|ueberl|nutzung/i.test(label)?"umwSt":/rad|bike|leasing|jobrad|fahrrad|e-?bike/i.test(label)?"umw":/vwl|vermögensw|vermoegensw/i.test(label)?"netAbz":"netAbz";
@@ -1737,7 +1740,8 @@ function slipRender(){
     const how=z.r!=null?`${fmt(z.r)} € je ${z.kind==="shift"?"Schicht":"Stunde"}`:`${fmt(z.pct,0)} %`;
     return `<label class="fi${z.on?"":" off"}"><input type="checkbox" data-g="zu" data-i="${i}"${z.on?" checked":""}><span><b>${esc(ZLBL[z.kind])}: ${how}</b><small>${esc(z.l)}${z.q!=null?` · ${fmt(z.q)} × ${fmt(z.r)}`:""} = ${eur(z.a)}</small></span></label>`}).join("")+`</div>`;
   if(R.other.length)h+=`<div class="sec">Weitere Zulagen auf deiner Abrechnung</div><div class="found">`+R.other.map((o,i)=>`<div class="fi"><span></span><span><b>${esc(o.l)}: ${eur(o.a)}</b><small>${o.q!=null?`${fmt(o.q)} × ${fmt(o.r)} € · `:""}${o.nightFlat?"Feste Pauschale, kommt mit den Zulagen, wenn du Nachtschichten hattest":o.once?"Sieht nach einer Einmalzahlung aus":o.isVar?"Kam mit der Nachberechnung, also mit den Zulagen aus dem Vormonat. Ändert sich von Monat zu Monat":o.q!=null?"Ändert sich mit deinen Stunden, hier zur Info":"Sieht nach einem festen Monatsbetrag aus"}</small></span><select data-g="other" data-i="${i}" aria-label="${esc(o.l)} übernehmen als">${o.nightFlat?`<option value="mNight" selected>Als Pauschale bei Nachtarbeit übernehmen</option>`:""}<option value="plus"${o.act==="plus"?" selected":""}>Jeden Monat als festes Brutto übernehmen</option>${(c.items||[]).some(x=>x.n.toLowerCase()===o.l.toLowerCase())?`<option value="remove"${o.act!=="plus"&&!o.nightFlat?" selected":""}>Aus deinen festen Posten entfernen</option>`:""}<option value="skip"${o.act==="skip"&&!(c.items||[]).some(x=>x.n.toLowerCase()===o.l.toLowerCase())?" selected":""}>Nur merken, nicht übernehmen</option></select></div>`).join("")+`</div>`;
-  if(R.ded.length)h+=`<div class="sec">Abzüge</div><div class="found">`+R.ded.map((d,i)=>`<div class="fi"><span></span><span><b>${esc(d.l)}: −${eur(d.a)}</b></span><select data-g="ded" data-i="${i}" aria-label="${esc(d.l)} übernehmen als"><option value="skip"${!d.on?" selected":""}>Nicht übernehmen</option><option value="umw"${d.on&&d.t==="umw"?" selected":""}>Gehaltsumwandlung vor Steuer, z. B. Rad</option><option value="umwSt"${d.on&&d.t==="umwSt"?" selected":""}>Gehaltsumwandlung nur steuerfrei, z. B. PC Leasing</option><option value="umwSt"${d.on&&d.t==="umwSt"?" selected":""}>Gehaltsumwandlung nur steuerfrei, z. B. PC Leasing</option><option value="netAbz"${d.on&&d.t==="netAbz"?" selected":""}>Abzug vom Netto</option></select></div>`).join("")+`</div>`;
+  if(R.pay&&(R.ded.length||R.other.length))h+=`<div class="found"><label class="fi"><input type="checkbox" data-g="sync" data-i="0" checked><span><b>Feste Posten genau wie auf dieser Abrechnung</b><small>Rad, Leasing und geldwerter Vorteil werden so übernommen, wie sie hier stehen. Posten, die nicht mehr draufstehen (z. B. beendetes Leasing), nimmt Zulo raus.</small></span></label></div>`;
+  if(R.ded.length)h+=`<div class="sec">Abzüge</div><div class="found">`+R.ded.map((d,i)=>`<div class="fi"><span></span><span><b>${esc(d.l)}: ${d.t==="gwv"?"+"+eur(d.a)+" (nur versteuert)":"−"+eur(d.a)}</b></span><select data-g="ded" data-i="${i}" aria-label="${esc(d.l)} übernehmen als"><option value="skip"${!d.on?" selected":""}>Nicht übernehmen</option><option value="umw"${d.on&&d.t==="umw"?" selected":""}>Gehaltsumwandlung vor Steuer, z. B. Rad</option><option value="umwSt"${d.on&&d.t==="umwSt"?" selected":""}>Gehaltsumwandlung nur steuerfrei, z. B. PC Leasing</option><option value="netAbz"${d.on&&d.t==="netAbz"?" selected":""}>Abzug vom Netto</option><option value="gwv"${d.on&&d.t==="gwv"?" selected":""}>Geldwerter Vorteil, nur versteuert</option></select></div>`).join("")+`</div>`;
   h+=`<p class="note" style="margin:0 2px 12px">Zuschläge stehen oft erst auf der Abrechnung des Folgemonats. Prüf die Werte kurz, bevor du sie übernimmst. Die Zeitfenster für Nacht und Samstag stehen nicht auf der Abrechnung, die prüfst du unter Zuschläge.</p>`;
   $("slRes").innerHTML=h;$("slApply").hidden=false;
   $("slRes").querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>cb.closest(".fi").classList.toggle("off",!cb.checked));
@@ -1760,11 +1764,15 @@ function slipApply(){
   R.other.forEach((o,i)=>{const a=on("other",i);if(a==="plus")addItem(o.l,Math.round(o.a*100)/100,"plus");
     else if(a==="mNight"){c.rules.mNight=Math.round(o.a*100)/100;c.modified=true;dropItem(o.l);nR++}
     else if(a==="remove")dropItem(o.l)});
+  if(R.pay&&on("sync",0)){const keep=new Set();R.ded.forEach((d,i)=>{const a=on("ded",i);if(a&&a!=="skip")keep.add(d.l.toLowerCase())});R.other.forEach((o,i)=>{if(on("other",i)==="plus")keep.add(o.l.toLowerCase())});
+    const k0=c.items.length;c.items=c.items.filter(x=>!["umw","umwSt","gwv"].includes(x.t)||keep.has(String(x.n).toLowerCase()));if(c.items.length<k0)nI++}
   if(R.pay&&on("pay",0)){state.actual=state.actual||{};state.actual[R.pay.ym]={total:R.pay.total,sal:R.pay.sal,zu:R.pay.zu,zuMo:R.pay.zuMo};nB++}
   if(R.abs&&on("abs",0)){c.absRate=R.abs.rate;nB++}
   R.prof.forEach((b,i)=>{if(!on("prof",i))return;nB++;if(b.k==="zug")c.zug=b.v;else{c.prof=c.prof||{};c.prof[b.k]=b.v}});
   R.ded.forEach((d,i)=>{const a=on("ded",i);if(a&&a!=="skip")addItem(d.l,Math.round(d.a*100)/100,a)});
   state.cfg=c;save();closeSheet();renderSettings();render();
+  if(R.pay&&state.actual&&state.actual[R.pay.ym]&&isMonth(c)){const P=payout(R.pay.y,R.pay.mo-1),d=Math.round((P.salNet-R.pay.sal)*100)/100;
+    toast(Math.abs(d)<0.05?"Gehalt netto stimmt mit der Abrechnung überein":`Gehalt netto weicht um ${eur(Math.abs(d))} ab`);return}
   toast(`Übernommen: ${nB+nR+nI} Werte`);
 }
 async function slipRun(getLines){
