@@ -1,0 +1,35 @@
+Copyright (c) 2026 Elyas Saciri (Ervin Saciri), Karlsruhe, Deutschland
+Alle Rechte vorbehalten.
+
+Zulo, Schichtkalender mit Zuschlägen
+
+Diese Software einschließlich Quellcode, Gestaltung, Texte, Logo, Name
+"Zulo" sowie die zusammengestellten Tarif- und Berechnungsdaten sind
+Eigentum von Elyas Saciri.
+
+Ohne vorherige schriftliche Erlaubnis ist es nicht gestattet, diese Software
+oder Teile davon zu kopieren, zu verändern, zu verbreiten, öffentlich
+zugänglich zu machen, unterzulizenzieren, zu verkaufen oder als Grundlage für
+eigene Produkte zu verwenden.
+
+Erlaubt ist allein die private Nutzung der unter
+https://elyasimpulslabs.github.io/Zulo/ bereitgestellten App.
+
+Dass der Quellcode hier einsehbar ist, bedeutet keine Erlaubnis zur Nutzung.
+
+Ausgenommen sind die Bibliotheken von Dritten im Ordner lib/. Für sie gelten
+ihre eigenen Lizenzen:
+  - lib/ (pdf.js): Apache License 2.0, siehe lib/PDFJS-LICENSE.txt
+  - lib/ocr/ (Tesseract): Apache License 2.0, siehe lib/ocr/LICENSE-tesseract.txt
+
+Die Berechnungen in Zulo sind Schätzungen ohne Gewähr. Maßgeblich ist
+immer die eigene Lohnabrechnung.
+
+Anfragen zur Nutzung oder Lizenzierung bitte über GitHub an elyasimpulslabs.
+
+---
+
+Copyright (c) 2026 Elyas Saciri (Ervin Saciri). All rights reserved.
+No permission is granted to copy, modify, distribute, sublicense or sell this
+software or any part of it without prior written consent. Third party
+libraries in lib/ remain under their own licenses (Apache License 2.0).

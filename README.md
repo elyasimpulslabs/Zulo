@@ -37,3 +37,7 @@ Danach funktioniert Zulo auch ohne Internet.
 | `lib/ocr/` | Texterkennung für Fotos (Tesseract, Apache 2.0 Lizenz), deutsches Sprachmodell |
 
 Die berechneten Werte sind Schätzungen. Maßgeblich ist immer die eigene Lohnabrechnung.
+
+## Rechte
+
+© 2026 Elyas Saciri. Alle Rechte vorbehalten. Der Code ist einsehbar, darf aber ohne schriftliche Erlaubnis nicht kopiert, verändert oder weiterverwendet werden. Details in [LICENSE](LICENSE). Die Bibliotheken im Ordner `lib/` stehen unter ihren eigenen Lizenzen (Apache 2.0).
