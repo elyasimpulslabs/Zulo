@@ -426,7 +426,8 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
       <label class="f" for="payMode"><span>Bezahlung<small>Steht im Arbeitsvertrag und auf der Abrechnung</small></span><span class="inp"><select id="payMode"><option value="month">Monatsgehalt</option><option value="hour">Stundenlohn</option></select></span></label>
       <div id="pmMonth">
         <label class="f" for="monthly"><span>Monatsgehalt brutto<small>Tabellenentgelt ohne Zuschläge</small></span><span class="inp"><input id="monthly" type="text" data-num="1" step="0.01" min="0" inputmode="decimal"><span class="unit">€</span></span></label>
-        <label class="f" for="hours"><span>Wochenstunden<small>Laut Vertrag</small></span><span class="inp"><input id="hours" type="text" data-num="1" step="0.5" min="1" inputmode="decimal"><span class="unit">Std</span></span></label>
+        <label class="f" for="hours"><span>Wochenstunden<small>Laut Vertrag, bei Teilzeit deine Stunden</small></span><span class="inp"><input id="hours" type="text" data-num="1" step="0.5" min="1" inputmode="decimal"><span class="unit">Std</span></span></label>
+        <label class="f" for="daysIn"><span>Arbeitstage pro Woche<small>Für Urlaub und Krankheit: so viele Stunden zählt ein freier Tag</small></span><span class="inp"><input id="daysIn" type="text" data-num="1" step="0.5" min="1" inputmode="decimal" placeholder="5"><span class="unit">Tage</span></span></label>
         <label class="f" for="zuRateIn"><span>Stundensatz für Zuschläge<small id="zuRateHint"></small></span><span class="inp"><input id="zuRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="automatisch"><span class="unit">€</span></span></label>
         <label class="f" for="absRateIn"><span>Zulagen bei Urlaub und Krankheit<small>Durchschnitt je Stunde, den du an Urlaubs und Krankheitstagen weiter bekommst. Steht auf der Abrechnung als Urlaubsentgelt oder Entgeltfortzahlung.</small></span><span class="inp"><input id="absRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="0"><span class="unit">€</span></span></label>
       </div>
@@ -455,6 +456,9 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
       <label class="f" for="tKirche"><span>Kirchensteuer<small>8 % in BW und Bayern, sonst 9 %</small></span><span class="inp"><select id="tKirche"><option value="0">nein</option><option value="1">ja</option></select></span></label>
       <label class="f" for="tKvz"><span>Zusatzbeitrag Krankenkasse<small>Steht als Krankenversicherung auf der Abrechnung. Durchschnitt 2026: 2,9 %, günstige Kassen ab rund 2,5 %</small></span><span class="inp"><input id="tKvz" type="text" data-num="1" min="0" step="0.01" inputmode="decimal"><span class="unit">%</span></span></label>
       <label class="f" for="tPvK"><span>Kinder unter 25<small>Senkt den Pflegebeitrag ab dem 2. Kind</small></span><span class="inp"><input id="tPvK" type="text" data-num="1" min="0" step="1" inputmode="numeric"></span></label>
+      <label class="f" for="tFb"><span>Freibetrag Lohnsteuer im Monat<small>Steht auf der Abrechnung unter Freibetrag, wenn das Finanzamt einen eingetragen hat, z. B. den Pauschbetrag bei Behinderung</small></span><span class="inp"><input id="tFb" type="text" data-num="1" min="0" step="0.01" inputmode="decimal" placeholder="0"><span class="unit">€</span></span></label>
+      <label class="f" for="tGdb"><span>Grad der Behinderung<small id="tGdbHint">Für den Pauschbetrag bei der Steuer</small></span><span class="inp"><select id="tGdb"><option value="">keiner</option><option value="20">GdB 20</option><option value="30">GdB 30</option><option value="40">GdB 40</option><option value="50">GdB 50</option><option value="60">GdB 60</option><option value="70">GdB 70</option><option value="80">GdB 80</option><option value="90">GdB 90</option><option value="100">GdB 100</option><option value="H">Merkzeichen H, Bl, TBl oder Pflegegrad 4/5</option></select></span></label>
+      <div class="pinfo" id="tGdbInfo" hidden style="padding:0 0 10px"></div>
       <label class="f" for="tKl"><span>Kinderlos und mindestens 23<small>Zuschlag zur Pflegeversicherung</small></span><span class="inp"><select id="tKl"><option value="1">ja</option><option value="0">nein</option></select></span></label>
     </div>
     <div class="sec">Zuschläge <span id="modTag"></span></div>
@@ -731,7 +735,7 @@ if(typeof module!=="undefined")module.exports={calc,PRESETS,holidays,validate};
 
 /* ZULO NETTO START */
 /* Lohnsteuer und Sozialabgaben 2026, nach dem Programmablaufplan (PAP) 2026 des BMF, vereinfacht für laufenden Monatslohn */
-const NET26={GFB:12348,SOLZFREI:20350,W1:14071,W2:34939,W3:222260,ANP:1230,SAP:36,EFA:4260,KFB:9756,
+const NET26={GG:603,UB:2000,FUB:0.6619,GFB:12348,SOLZFREI:20350,W1:14071,W2:34939,W3:222260,ANP:1230,SAP:36,EFA:4260,KFB:9756,
   BBGKV:69750/12,BBGRV:101400/12,RV:0.093,AV:0.013,KVBASE:0.073,PVBASE:0.018};
 function uptab(x){
   x=Math.floor(x);let st;
@@ -766,7 +770,12 @@ function netto(p){
   let pv=N.PVBASE+(land==="SN"?0.005:0);
   if(p.kinderlos23)pv+=0.006;
   else if((+p.pvKinder||0)>=2)pv-=0.0025*Math.min(4,(+p.pvKinder)-1);
-  const kv=bKV*(N.KVBASE+kvz/2),pvB=bKV*pv,rv=bRV*N.RV,av=bRV*N.AV;
+  let kv=bKV*(N.KVBASE+kvz/2),pvB=bKV*pv,rv=bRV*N.RV,av=bRV*N.AV;
+  /* Minijob bis 603 €: nur Rentenversicherung 3,6 %, Lohnsteuer meist pauschal beim Arbeitgeber */
+  if(svb>0&&svb<=N.GG&&!p.noMini){return {brutto:b,lst:0,soli:0,kist:0,kv:0,pv:0,rv:svb*0.036,av:0,sv:svb*0.036,steuern:0,netto:b-svb*0.036,mini:true}}
+  /* Übergangsbereich (Midijob) 603,01 bis 2.000 €: Arbeitnehmer zahlen Beiträge nur auf eine reduzierte Einnahme (§ 20 Abs. 2a SGB IV) */
+  if(svb>N.GG&&svb<=N.UB){const be=N.FUB*N.GG+(N.UB/(N.UB-N.GG)-N.GG/(N.UB-N.GG)*N.FUB)*(svb-N.GG),an=N.UB/(N.UB-N.GG)*(svb-N.GG),kl=p.kinderlos23?0.006:0;
+    kv=an*(N.KVBASE+kvz/2);pvB=an*(pv-kl)+be*kl;rv=an*N.RV;av=an*N.AV}
   /* Vorsorgepauschale (Jahr) */
   const j=b*12,jv=(p.vspSv?svb:b)*12,jKV=Math.min(jv,N.BBGKV*12),jRV=Math.min(jv,N.BBGRV*12);
   const vspr=jRV*N.RV;
@@ -774,7 +783,7 @@ function netto(p){
   const vsphb=Math.min(jRV*N.AV+vspkvpv,1900);
   const vsp=Math.ceil(vspr+Math.max(vspkvpv,vsphb));
   const anp=stkl===6?0:N.ANP,sap=stkl===6?0:N.SAP,efa=stkl===2?N.EFA:0;
-  const zve=j-anp-sap-efa-vsp;
+  const zve=j-anp-sap-efa-vsp-Math.max(0,+p.fb||0)*12; /* Freibetrag aus den Lohnsteuermerkmalen, z. B. Behinderten-Pauschbetrag */
   const lstJ=estJahr(zve,stkl);
   /* Soli und Kirchensteuer: mit Kinderfreibeträgen */
   const kfb=(stkl<=3?N.KFB:stkl===4?N.KFB/2:0)*(+p.kinder||0);
@@ -854,7 +863,7 @@ const DB_DIV={"12":12,"12.5":12.5,"13":13},DB_WF={u6:0.9745,u12:0.9489};
 /* DB: Stufe nach Tätigkeitsjahren in der Entgeltgruppe, je 5 Jahre (FGr 4: Berufserfahrung) */
 function dbStufe(P,at){const d=isoD(P.taetig||P.beginn);if(!d)return null;const y=(at-d)/31557600000;const s=Math.min(7,Math.floor(Math.max(0,y)/5)+1);return {s,yrs:Math.max(0,Math.floor(y)),next:s<7?addY(d,s*5):null}}
 function dbJte(eg,at){const T=DB_JTE[String(eg||"").trim()];if(!T)return null;const k=Object.keys(T).filter(x=>new Date(x+"T00:00:00")<=at).sort().pop();return k?{from:k,row:T[k]}:null}
-function dbMonthly(c,at){const P=c.prof||{},st=dbStufe(P,at),t=dbJte(P.eg,at);if(!st||!t)return null;const j=t.row[st.s-1];if(!j)return null;return Math.round(j*(DB_WF[P.wahl]||1)/(DB_DIV[P.modell||"12"]||12)*100)/100}
+function dbMonthly(c,at){const P=c.prof||{},st=dbStufe(P,at),t=dbJte(P.eg,at);if(!st||!t)return null;const j=t.row[st.s-1];if(!j)return null;const tz=(+P.jaz>0&&+P.jaz<2036)?(+P.jaz)/2036:1;return Math.round(j*(DB_WF[P.wahl]||1)*tz/(DB_DIV[P.modell||"12"]||12)*100)/100}
 /* Voreinstellungen im Tarifprofil */
 function profDef(c,k){const P=c.prof||{};if(P[k]!=null&&P[k]!=="")return String(P[k]);
   if(k==="fgr"){const e=String(P.eg||"");return /^[1-6]\d\d$/.test(e)?e[0]:""}
@@ -918,7 +927,7 @@ function payout(y,m){
   const T=monthTotals(y,m),B=dl>0?monthTotals(back.getFullYear(),back.getMonth()):T;
   const base=isMonth(c)?monthlyAt(c,y,m):T.base,S=itemSums(c);
   const cash=base+S.plus-S.umw-S.umwSt,svB=base+S.plus-S.umw+S.gwv,taxB=svB-S.umwSt;
-  const t=taxCfg(c),np=(tb,sb)=>netto({brutto:tb,sv:sb,stkl:+t.stkl,kinder:+t.kinder,kirche:!!t.kirche,land:c.land,kvz:+t.kvz,kinderlos23:!!t.kinderlos23,pvKinder:+t.pvKinder});
+  const t=taxCfg(c),np=(tb,sb)=>netto({brutto:tb,sv:sb,stkl:+t.stkl,kinder:+t.kinder,kirche:!!t.kirche,land:c.land,kvz:+t.kvz,kinderlos23:!!t.kinderlos23,pvKinder:+t.pvKinder,fb:+t.fb||0});
   const ded=n=>n.lst+n.soli+n.kist+n.sv;
   const n0=np(taxB,svB);
   const salNet=cash-ded(n0)-S.netAbz+S.netPlus;
@@ -957,7 +966,7 @@ function monthTotals(y,m){
     for(const k of ["night","sat","sun","hol","eve","high"]){const h=Math.round(T.m[k]/60);const ne=h*rt(R[k]);if(T.m[k]>0){d+=ne-T.e[k];T.e[k]=ne;T.m[k]=h*60}}
     T.zu+=d;}
   /* Urlaub und Krankheit: viele Arbeitgeber (z. B. die Bahn) zahlen den Durchschnitt der Zulagen je Stunde weiter */
-  T.e.abs=0;T.absH=0;{const ar=+cfg().absRate||0,n=(T.count.U||0)+(T.count.K||0);if(ar>0&&n>0){T.absH=n*((+cfg().hours||39)/5);T.e.abs=Math.round(ar*T.absH*100)/100;T.zu+=T.e.abs}}
+  T.e.abs=0;T.absH=0;{const ar=+cfg().absRate||0,n=(T.count.U||0)+(T.count.K||0);if(ar>0&&n>0){T.absH=n*((+cfg().hours||39)/Math.min(7,Math.max(1,+cfg().days||5)));T.e.abs=Math.round(ar*T.absH*100)/100;T.zu+=T.e.abs}}
   if(+R.mNight>0&&T.m.night>0){T.e.month=+R.mNight;T.monthLbl="Pauschale bei Nachtarbeit"}
   else if(+R.mShift>0&&T.shifts>0){T.e.month=+R.mShift;T.monthLbl="Schichtzulage pauschal"}
   T.zu+=T.e.month;
@@ -1201,10 +1210,10 @@ function renderSettings(){
   $("sTarifHint").textContent=P.hint;
   $("sTarifStand").innerHTML=`Stand: ${P.stand}${P.src?` · <a href="${P.src}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Quelle</a>`:""}`;
   $("payMode").value=c.payMode;$("pmMonth").hidden=!isMonth(c);$("pmHour").hidden=isMonth(c);
-  $("wage").value=c.wage||"";$("monthly").value=c.monthly||"";$("hours").value=c.hours||"";$("zuRateIn").value=c.zuRate||"";$("absRateIn").value=c.absRate||"";$("payDayIn").value=c.payDay||"";$("zugSel").value=c.zug||"s";$("zugRow").hidden=c.tarif!=="dbevg"||!isMonth(c);
+  $("wage").value=c.wage||"";$("monthly").value=c.monthly||"";$("hours").value=c.hours||"";$("zuRateIn").value=c.zuRate||"";$("absRateIn").value=c.absRate||"";$("daysIn").value=c.days||"";$("payDayIn").value=c.payDay||"";$("zugSel").value=c.zug||"s";$("zugRow").hidden=c.tarif!=="dbevg"||!isMonth(c);
   $("zuRateHint").textContent=`Automatisch ${fmt(derivedRate(c))} €. `+((c.tarif==="tvoed"||c.tarif==="tvl")?"Im TVöD und TV-L zählt Stufe 3 deiner Entgeltgruppe. Trag den Satz hier ein, wenn du nicht in Stufe 3 bist.":"Nur ändern, wenn dein Tarif anders rechnet.");
   $("land").innerHTML=landOpts(c.land);
-  {const t=taxCfg(c);$("tStkl").value=t.stkl;$("tKinder").value=t.kinder;$("tKirche").value=t.kirche?"1":"0";$("tKvz").value=t.kvz;$("tPvK").value=t.pvKinder;$("tKl").value=t.kinderlos23?"1":"0";}
+  {const t=taxCfg(c);$("tStkl").value=t.stkl;$("tKinder").value=t.kinder;$("tKirche").value=t.kirche?"1":"0";$("tKvz").value=t.kvz;$("tPvK").value=t.pvKinder;$("tKl").value=t.kinderlos23?"1":"0";$("tFb").value=t.fb||"";$("tGdb").value=t.gdb||"";gdbInfo();}
   $("modTag").innerHTML=c.modified?`<span class="mod">angepasst</span> <button class="linkbtn" id="restore">Vorlage wiederherstellen</button>`:"";
   if(c.modified)$("restore").onclick=()=>{c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Vorlage wiederhergestellt")};
   renderRules();renderTpl();renderItems();renderProf();renderXtra();enhanceAll();
@@ -1247,6 +1256,7 @@ const PROF_FIELDS={
   dbevg:[["fgr","Funktionsgruppe","sel",opt([["","weiß nicht"],["1","FGr 1"],["2","FGr 2"],["3","FGr 3"],["4","FGr 4"],["5","FGr 5"],["6","FGr 6"],["7","FGr 7"]]),"Steht im Arbeitsvertrag. Jede Funktionsgruppe hat eigene Tabellen"],
     ["eg","Entgeltgruppe","txt",null,"Auf der Abrechnung, z. B. 559"],["stufe","Entgeltstufe","num",null,"Auf der Abrechnung"],
     ["beginn","Beschäftigt seit","date",null,"Beschäftigungsbeginn auf der Abrechnung"],
+    ["jaz","Jahresarbeitszeit-Soll","num",null,"Vollzeit 2.036 Stunden. Bei Teilzeit steht dein Soll im Arbeitsvertrag, das Gehalt aus der Tabelle wird dann anteilig gerechnet"],
     ["taetig","Tätigkeitsjahre zählen ab","date",null,"Seit wann du in dieser Entgeltgruppe bist. Leer lassen, wenn das der Beschäftigungsbeginn ist"],
     ["modell","Auszahlungsmodell","sel",opt([["12","12er"],["12.5","12,5er"],["13","13er"]]),"Steht auf der Abrechnung"],
     ["wahl","Wahlmodell","sel",opt([["ent",WAHL.ent],["u6",WAHL.u6],["u12",WAHL.u12],["az",WAHL.az]]),"Steht auf der Abrechnung als Wahlmodell Arbeitszeit"],
@@ -1389,8 +1399,19 @@ function renderTpl(){
 }
 $("sTarif").onchange=e=>{const c=cfg();c.tarif=e.target.value;c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Tarif geändert")};
 const numIn=(id,key)=>$(id).onchange=e=>{cfg()[key]=Math.max(0,N(e.target.value)||0);save();renderSettings();render()};
-numIn("wage","wage");numIn("monthly","monthly");numIn("hours","hours");numIn("zuRateIn","zuRate");numIn("absRateIn","absRate");numIn("payDayIn","payDay");$("zugSel").onchange=e=>{cfg().zug=e.target.value;save();renderSettings();render()};
-[["tStkl","stkl",1],["tKinder","kinder",1],["tKvz","kvz",1],["tPvK","pvKinder",1],["tKirche","kirche",2],["tKl","kinderlos23",2]].forEach(([id,k,ty])=>$(id).onchange=e=>{const t=taxCfg(cfg());t[k]=ty===2?e.target.value==="1":Math.max(0,N(e.target.value)||0);save();render()});
+numIn("wage","wage");numIn("monthly","monthly");numIn("hours","hours");numIn("zuRateIn","zuRate");numIn("absRateIn","absRate");numIn("daysIn","days");numIn("payDayIn","payDay");$("zugSel").onchange=e=>{cfg().zug=e.target.value;save();renderSettings();render()};
+/* Behinderten-Pauschbetrag (§ 33b EStG), Stand 2026 */
+const GDB_PB={"20":384,"30":620,"40":860,"50":1140,"60":1440,"70":1780,"80":2120,"90":2460,"100":2840,"H":7400};
+function gdbInfo(){const c=cfg(),t=taxCfg(c),g=t.gdb||"",el=$("tGdbInfo");if(!g){el.hidden=true;return}
+  const pb=GDB_PB[g],mo=Math.round(pb/12*100)/100,y=new Date().getFullYear(),m=new Date().getMonth();
+  /* Was der Pauschbetrag im Jahr an Lohnsteuer spart, wenn er noch nicht als Freibetrag eingetragen ist */
+  const P=payout(y,m),base={brutto:P.n0.brutto,sv:P.n0.brutto,stkl:+t.stkl,kinder:+t.kinder,kirche:!!t.kirche,land:c.land,kvz:+t.kvz,kinderlos23:!!t.kinderlos23,pvKinder:+t.pvKinder};
+  const tx=n=>n.lst+n.soli+n.kist,gain=(tx(netto({...base,fb:+t.fb||0}))-tx(netto({...base,fb:(+t.fb||0)+mo})))*12;
+  el.hidden=false;el.innerHTML=`Pauschbetrag <b>${eur0(pb)} im Jahr</b>, also ${eur(mo)} im Monat.${+t.fb>=mo-0.01?" Er ist als Freibetrag eingetragen.":` Steht er noch nicht als Freibetrag auf deiner Abrechnung, bekommst du rund <b>${eur0(gain)}</b> über die Steuererklärung zurück. Beim Finanzamt kannst du ihn als Freibetrag eintragen lassen, dann ist das Netto jeden Monat höher. <button type="button" class="linkbtn" id="tGdbUse">Als Freibetrag eintragen</button>`}${(g==="H"||+g>=50)?" Mit Schwerbehinderung (ab GdB 50) hast du außerdem 5 Tage Zusatzurlaub im Jahr.":""}`;
+  const b=$("tGdbUse");if(b)b.onclick=()=>{t.fb=mo;save_();renderSettings();render();toast("Freibetrag eingetragen")}}
+const save_=()=>save();
+$("tGdb").onchange=e=>{const t=taxCfg(cfg());t.gdb=e.target.value;save();gdbInfo()};
+[["tFb","fb",1],["tStkl","stkl",1],["tKinder","kinder",1],["tKvz","kvz",1],["tPvK","pvKinder",1],["tKirche","kirche",2],["tKl","kinderlos23",2]].forEach(([id,k,ty])=>$(id).onchange=e=>{const t=taxCfg(cfg());t[k]=ty===2?e.target.value==="1":Math.max(0,N(e.target.value)||0);save();render()});
 $("payMode").onchange=e=>{cfg().payMode=e.target.value;save();renderSettings();render()};
 $("land").onchange=e=>{cfg().land=e.target.value;save();renderSettings();render()};
 
