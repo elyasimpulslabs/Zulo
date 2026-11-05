@@ -515,6 +515,7 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
       <label for="tEnd">Ende<input id="tEnd" type="time"></label>
       <label for="tBreak">Pause min<input id="tBreak" type="text" data-num="1" min="0" step="5" inputmode="numeric" enterkeyhint="done"></label>
     </div>
+    <label class="repT" for="tNoF" id="tNoFL" hidden><input type="checkbox" id="tNoF"> Ohne Zugfahrt, z. B. Bereitschaft in der Dienststelle</label>
     <label class="repT" for="tAway" id="tAwayL" hidden><input type="checkbox" id="tAway"> Danach auswärts übernachtet</label>
     <p class="err" id="shErr" hidden></p>
     <div class="preview" id="pv"></div>
@@ -940,7 +941,7 @@ function abzMonth(y,m){
   const weg=Math.max(0,+((c.prof||{}).weg??50)||0),R=ABZ_RATES[kind];
   /* Schichten von einigen Tagen davor bis einen Tag danach, damit Reisen über den Monatswechsel stimmen */
   const L=[];for(let i=-4;i<=new Date(y,m+1,0).getDate()+1;i++){const dt=new Date(y,m,i),k=keyOf(dt),sh=state.shifts[k];
-    if(!sh||!TYPES[sh.t]||!TYPES[sh.t].work||!sh.s||!sh.e)continue;
+    if(!sh||!TYPES[sh.t]||!TYPES[sh.t].work||!sh.s||!sh.e||sh.nof)continue; /* ohne Zugfahrt, z. B. Bereitschaft in der Dienststelle: keine Ausbleibezeit */
     const b=dt.getTime()/60000-dt.getTimezoneOffset()*0,st=toMin(sh.s);let en=toMin(sh.e);if(en<=st)en+=1440;
     const d0=new Date(y,m,i).getTime()/60000;L.push({k,s:d0+st,e:d0+en,away:!!sh.away})}
   /* Reisen bilden: Weg vor der ersten und nach der letzten Schicht, Übernachtung verbindet Schichten */
@@ -1013,7 +1014,8 @@ function monthTotals(y,m){
   /* Bahn (FGr-TVe): Fahrentschädigung je Schicht mit Zugfahrt, Sondernachtzulage, Umkleide-Entschädigung, Prämien im Schnitt */
   T.e.fahrt=0;T.e.snz=0;T.e.fix=0;
   {const c=cfg();if(c.tarif==="dbevg"){const P=c.prof||{},any=T.shifts>0||(T.count.U||0)+(T.count.K||0)>0;
-    if(profDef(c,"fahrt")==="1")T.e.fahrt=Math.round(6.65*T.shifts*100)/100;
+    T.fShifts=0;for(let i=1;i<=new Date(y,m+1,0).getDate();i++){const sh=state.shifts[dk(y,m,i)];if(sh&&TYPES[sh.t]&&TYPES[sh.t].work&&!sh.nof)T.fShifts++}
+    if(profDef(c,"fahrt")==="1")T.e.fahrt=Math.round(6.65*T.fShifts*100)/100;
     if((T.pnz3||0)>=20){T.e.snz=25;T.taxfree+=25}
     if(any&&profDef(c,"efu")==="1")T.e.fix+=50;
     if(any&&+P.praem>0)T.e.fix+=+P.praem;
@@ -1082,7 +1084,7 @@ function renderAbz(T){
   if(A.kind!=="st")S.push([`Verpflegungspauschale vom Arbeitgeber (${A.n8+A.n14+A.n24} Tage)`,eur(A.tarif),"sub"]);
   if(A.fremd)S.push([`Prämie Fremdsprache (${A.fremd} Schichten)`,eur(A.fremdEur)]);
   S.push(["Steuerlich erlaubt (14 € / 28 € je Tag)",eur(A.estg)],["Für die Steuererklärung (Werbungskosten)",eur(Math.max(0,A.estg-(A.kind==="st"?0:A.tarif))),"good"]);
-  $("sAbz").innerHTML=rows(L)+rows(S)+`<p class="note" style="margin:6px 0 4px">Uhrzeiten ab und an Wohnung mit ${A.weg} Minuten Weg vor und nach der Schicht geschätzt, änderbar im Tarifprofil. Übernachtest du auswärts, hake das in der Schicht an. ${A.kind==="st"?"":"Die Pauschale kommt mit der Nachberechnung, sobald dein Zettel abgerechnet ist. "}Ohne Gewähr, maßgeblich ist der abgerechnete Zettel.</p>`;
+  $("sAbz").innerHTML=rows(L)+rows(S)+`<p class="note" style="margin:6px 0 4px">Uhrzeiten ab und an Wohnung mit ${A.weg} Minuten Weg vor und nach der Schicht geschätzt, änderbar im Tarifprofil. Übernachtest du auswärts, hake das in der Schicht an. Schichten ohne Zugfahrt, etwa Bereitschaft in der Dienststelle, zählen nicht. ${A.kind==="st"?"":"Die Pauschale kommt mit der Nachberechnung, sobald dein Zettel abgerechnet ist. "}Ohne Gewähr, maßgeblich ist der abgerechnete Zettel.</p>`;
 }
 function renderSummary(T){
   renderAbz(T);
@@ -1092,7 +1094,7 @@ function renderSummary(T){
   if(T.e.shift>0.004)money.push(["Zuschlag je Schicht (0 bis 4 Uhr)",eur(T.e.shift)]);
   if(T.e.month>0.004)money.push([T.monthLbl,eur(T.e.month)]);
   if(T.e.snz>0.004)money.push(["Sondernachtzulage",eur(T.e.snz)]);
-  if(T.e.fahrt>0.004)money.push([`Fahrentschädigung (${T.shifts} × 6,65 €)`,eur(T.e.fahrt)]);
+  if(T.e.fahrt>0.004)money.push([`Fahrentschädigung (${T.fShifts??T.shifts} × 6,65 €)`,eur(T.e.fahrt)]);
   if(T.e.fix>0.004)money.push(["Umkleiden und Prämien im Schnitt",eur(T.e.fix)]);
   if(T.e.abz>0.004)money.push(["Ausbleibezeit, Verpflegung (steuerfrei)",eur(T.e.abz)]);
   if(T.e.fremd>0.004)money.push([`Prämie Fremdsprache (${T.abz.fremd} × 0,77 €)`,eur(T.e.fremd)]);
@@ -1187,12 +1189,14 @@ function fillTimes(){
   const sh=editing.sh,w=sh.t==="W";
   $("times").hidden=!w;$("quick").hidden=!w;
   if(w){$("tStart").value=sh.s||"";$("tEnd").value=sh.e||"";$("tBreak").value=sh.b??0}
-  $("tAwayL").hidden=!w||!abzKind(cfg());$("tAway").checked=!!sh.away;
+  $("tAwayL").hidden=!w||!abzKind(cfg())||!!sh.nof;$("tAway").checked=!!sh.away;
+  $("tNoFL").hidden=!w||!(cfg().tarif==="dbevg"||abzKind(cfg()));$("tNoF").checked=!!sh.nof;
   updPreview();
 }
-function readTimes(){if(editing.sh.t==="W"){editing.sh.s=normTime($("tStart").value)||"";editing.sh.e=normTime($("tEnd").value)||"";editing.sh.b=Math.max(0,N($("tBreak").value)||0);if($("tAway").checked)editing.sh.away=true;else delete editing.sh.away}}
+function readTimes(){if(editing.sh.t==="W"){editing.sh.s=normTime($("tStart").value)||"";editing.sh.e=normTime($("tEnd").value)||"";editing.sh.b=Math.max(0,N($("tBreak").value)||0);if($("tAway").checked&&!$("tNoF").checked)editing.sh.away=true;else delete editing.sh.away;if($("tNoF").checked)editing.sh.nof=true;else delete editing.sh.nof}}
 $("tBreak").addEventListener("input",()=>{editing&&(editing.autoB=false)});
 $("tAway").addEventListener("change",()=>{editing&&updPreview()});
+$("tNoF").addEventListener("change",()=>{if(!editing)return;readTimes();$("tAwayL").hidden=!abzKind(cfg())||$("tNoF").checked;updPreview()});
 function updPreview(){
   readTimes();
   const w=editing.sh.t==="W";
