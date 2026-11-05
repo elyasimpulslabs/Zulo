@@ -393,6 +393,8 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
     <div class="card" id="sHours"></div>
     <div class="sec">Tage</div>
     <div class="card" id="sShifts"></div>
+    <div id="sAbzWrap" hidden><div class="sec">Ausbleibezettel</div>
+    <div class="card" id="sAbz"></div></div>
     <p class="note">Netto ist eine Schätzung nach dem amtlichen Lohnsteuer Ablaufplan 2026 und den Sozialversicherungswerten 2026. Firmenrad, Leasing und andere Posten trägst du unter Lohn ein. Der steuerfreie Anteil ist eine Schätzung nach § 3b EStG; maßgeblich ist deine Lohnabrechnung.</p>
   </section>
 
@@ -513,6 +515,7 @@ s.addEventListener("click",function(){if(started&&!s.classList.contains("wait")&
       <label for="tEnd">Ende<input id="tEnd" type="time"></label>
       <label for="tBreak">Pause min<input id="tBreak" type="text" data-num="1" min="0" step="5" inputmode="numeric" enterkeyhint="done"></label>
     </div>
+    <label class="repT" for="tAway" id="tAwayL" hidden><input type="checkbox" id="tAway"> Danach auswärts übernachtet</label>
     <p class="err" id="shErr" hidden></p>
     <div class="preview" id="pv"></div>
     <div class="rep" id="rep">
@@ -872,6 +875,7 @@ function profDef(c,k){const P=c.prof||{};if(P[k]!=null&&P[k]!=="")return String(
   if(!P.fgr&&(k==="fahrt"||k==="efu")){const f=profDef(c,"fgr");if(f)return k==="fahrt"?(["1","2","4","5"].includes(f)?"1":"0"):(f==="1"?"0":"1")}
   if(k==="fahrt")return ["1","2","4","5",""].includes(String(P.fgr||""))?"1":"0";
   if(k==="efu")return String(P.fgr||"")==="1"?"0":"1";
+  if(k==="abz"){const f=profDef(c,"fgr");return ["2","4","5"].includes(f)?"fahrt":["1","3"].includes(f)?"ewt":f?"0":"fahrt"}
   if(k==="auto")return "0";return ""}
 const isoD=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||"")?new Date(v+"T12:00:00"):null;
 const deDate=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||"");return m?`${m[3]}.${m[2]}.${m[1]}`:(v||"")};
@@ -924,6 +928,40 @@ function zugFor(c,y,m){
   const z=c.zug||"s",pct=y===2026?(z==="n"?0:2.6):y>=2027?(z==="n"?2.0:z==="s2"?3.73:4.6):0;
   return Math.round((+c.monthly||0)*12*pct)/100}
 /* Was im Monat m aufs Konto kommt: erst das Gehalt mit allen Abzügen, dann die Zulagen aus dem Vormonat obendrauf */
+/* Ausbleibezeit und Verpflegungspauschale
+   Bahn FGr 2, 4, 5 (§ 36 Fahrtätigkeit): 6 / 9 / 13 € ab 8 / 14 / 24 Std Abwesenheit von der Wohnung, steuerfrei
+   Bahn FGr 1, 2, 3 (Einsatzwechseltätigkeit): 4,09 / 6,14 / 9,71 €
+   Steuer (§ 9 Abs. 4a EStG): 14 € ab 8 Std und für An und Abreisetag, 28 € für 24 Std. Was der Arbeitgeber nicht zahlt, sind Werbungskosten.
+   Ohne Übernachtung über Mitternacht zählt die ganze Abwesenheit für den Tag mit dem größeren Teil. */
+const ABZ_RATES={fahrt:[6,9,13],ewt:[4.09,6.14,9.71],st:[0,0,0]};
+function abzKind(c){if(c.tarif==="dbevg"){const v=profDef(c,"abz");return v==="0"?"":v}const v=(c.prof||{}).abz;return v==="st"?"st":""}
+function abzMonth(y,m){
+  const c=cfg(),kind=abzKind(c);if(!kind)return null;
+  const weg=Math.max(0,+((c.prof||{}).weg??50)||0),R=ABZ_RATES[kind];
+  /* Schichten von einigen Tagen davor bis einen Tag danach, damit Reisen über den Monatswechsel stimmen */
+  const L=[];for(let i=-4;i<=new Date(y,m+1,0).getDate()+1;i++){const dt=new Date(y,m,i),k=keyOf(dt),sh=state.shifts[k];
+    if(!sh||!TYPES[sh.t]||!TYPES[sh.t].work||!sh.s||!sh.e)continue;
+    const b=dt.getTime()/60000-dt.getTimezoneOffset()*0,st=toMin(sh.s);let en=toMin(sh.e);if(en<=st)en+=1440;
+    const d0=new Date(y,m,i).getTime()/60000;L.push({k,s:d0+st,e:d0+en,away:!!sh.away})}
+  /* Reisen bilden: Weg vor der ersten und nach der letzten Schicht, Übernachtung verbindet Schichten */
+  const trips=[];let cur=null;
+  for(const x of L){if(cur&&cur.open){cur.e=x.e;cur.ks.push(x.k);cur.open=x.away;cur.ov=true}else{cur={s:x.s-weg,e:x.e,ks:[x.k],open:x.away,ov:false};trips.push(cur)}}
+  trips.forEach(t=>{t.e+=t.open?0:weg});
+  const day={},add=(k,min,x)=>{const d=day[k]=day[k]||{min:0,arr:false,full:false,ks:[],s:null,e:null};d.min+=min;x&&x.forEach(z=>d.ks.includes(z)||d.ks.push(z));return d};
+  const kOf=t=>keyOf(new Date(t*60000)),mid=t=>{const d=new Date(t*60000);d.setHours(24,0,0,0);return d.getTime()/60000};
+  for(const t of trips){
+    if(!t.ov){/* eintägig: alles für den Tag mit der größeren Abwesenheit */
+      const m0=mid(t.s),a=Math.min(t.e,m0)-t.s,b2=t.e-Math.min(t.e,m0),k=b2>a?kOf(t.e-1):kOf(t.s);const d=add(k,t.e-t.s,t.ks);d.s=d.s??t.s;d.e=t.e;continue}
+    let p=t.s;while(p<t.e){const n=Math.min(mid(p),t.e),k=kOf(p),d=add(k,n-p,t.ks);if(p===t.s||n===t.e)d.arr=true;if(n-p>=1440)d.full=true;d.s=d.s??p;d.e=n;p=n}
+  }
+  const out=[];let tarif=0,estg=0,n8=0,n14=0,n24=0;
+  for(let i=1;i<=new Date(y,m+1,0).getDate();i++){const k=dk(y,m,i),d=day[k];if(!d)continue;
+    const full=d.full||d.min>=1440,lv=full?2:d.min>=840?1:d.min>=480?0:-1;
+    const tv=lv>=0?R[lv]:0,ev=full?28:(d.min>=480||d.arr)?14:0;
+    if(lv===0)n8++;if(lv===1)n14++;if(lv===2)n24++;tarif+=tv;estg+=ev;out.push({k,min:d.min,lv,tv,ev,arr:d.arr,s:d.s,e:d.e})}
+  const fr=(c.tarif==="dbevg"&&(c.prof||{}).fremd==="1")?out.filter(x=>x.lv>=0).length:0;
+  return {kind,weg,days:out,tarif:Math.round(tarif*100)/100,estg,n8,n14,n24,fremd:fr,fremdEur:Math.round(fr*0.77*100)/100};
+}
 function payout(y,m){
   const c=cfg(),dl=+(c.rules.delay??1),back=new Date(y,m-dl,1);
   const T=monthTotals(y,m),B=dl>0?monthTotals(back.getFullYear(),back.getMonth()):T;
@@ -980,6 +1018,7 @@ function monthTotals(y,m){
     if(any&&profDef(c,"efu")==="1")T.e.fix+=50;
     if(any&&+P.praem>0)T.e.fix+=+P.praem;
     T.zu+=T.e.fahrt+T.e.snz+T.e.fix}}
+  T.e.abz=0;T.e.fremd=0;{const A=abzMonth(y,m);if(A){T.abz=A;if(A.kind!=="st"){T.e.abz=A.tarif;T.taxfree+=A.tarif;T.zu+=A.tarif}T.e.fremd=A.fremdEur;T.zu+=A.fremdEur}}
   return T;
 }
 function render(){
@@ -1033,7 +1072,20 @@ function render(){
 const LBL={night:"Nacht",sat:"Samstag",sun:"Sonntag",hol:"Feiertag",eve:"24. und 31.12.",high:"Hohe Feiertage"};
 const rateTxt=x=>x.u==="eur"?`${fmt(+x.v)} €/Std`:`${fmt(+x.v,0)} %`;
 function rows(list){return list.map(([k,v,c])=>`<div class="row ${c||""}"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("")}
+function renderAbz(T){
+  const A=T.abz,w=$("sAbzWrap");if(!w)return;if(!A){w.hidden=true;return}w.hidden=false;
+  const hm=x=>`${Math.floor(x/60)}:${pad(Math.round(x%60))}`,tm=t=>{const d=new Date(t*60000);return `${pad(d.getHours())}:${pad(d.getMinutes())}`};
+  const LV=["ab 8 Std","ab 14 Std","24 Std"];
+  const L=A.days.map(x=>{const dt=new Date(x.k+"T12:00:00");return [`${dt.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"})} · ${x.min>=1440?"ganzer Tag auswärts":`${tm(x.s)} bis ${tm(x.e)==="00:00"&&x.e>x.s?"24:00":tm(x.e)} · ${hm(x.min)} Std`}`,x.lv>=0?(A.kind==="st"?LV[x.lv]:`${LV[x.lv]} · ${eur(x.tv)}`):(x.ev>0?"An oder Abreisetag":"unter 8 Std")]});
+  if(!L.length)L.push(["Keine Schichten mit Uhrzeiten eingetragen",""]);
+  const S=[];
+  if(A.kind!=="st")S.push([`Verpflegungspauschale vom Arbeitgeber (${A.n8+A.n14+A.n24} Tage)`,eur(A.tarif),"sub"]);
+  if(A.fremd)S.push([`Prämie Fremdsprache (${A.fremd} Schichten)`,eur(A.fremdEur)]);
+  S.push(["Steuerlich erlaubt (14 € / 28 € je Tag)",eur(A.estg)],["Für die Steuererklärung (Werbungskosten)",eur(Math.max(0,A.estg-(A.kind==="st"?0:A.tarif))),"good"]);
+  $("sAbz").innerHTML=rows(L)+rows(S)+`<p class="note" style="margin:6px 0 4px">Uhrzeiten ab und an Wohnung mit ${A.weg} Minuten Weg vor und nach der Schicht geschätzt, änderbar im Tarifprofil. Übernachtest du auswärts, hake das in der Schicht an. ${A.kind==="st"?"":"Die Pauschale kommt mit der Nachberechnung, sobald dein Zettel abgerechnet ist. "}Ohne Gewähr, maßgeblich ist der abgerechnete Zettel.</p>`;
+}
 function renderSummary(T){
+  renderAbz(T);
   const R=cfg().rules,tot=T.base+T.zu||1;
   const money=[[isMonth(cfg())?"Grundgehalt (fest)":"Grundlohn",eur(T.base)]];
   for(const k of ["night","sat","sun","hol","eve","high"])if(T.e[k]>0.004)money.push([`${LBL[k]} ${rateTxt(R[k])}`,eur(T.e[k])]);
@@ -1042,6 +1094,8 @@ function renderSummary(T){
   if(T.e.snz>0.004)money.push(["Sondernachtzulage",eur(T.e.snz)]);
   if(T.e.fahrt>0.004)money.push([`Fahrentschädigung (${T.shifts} × 6,65 €)`,eur(T.e.fahrt)]);
   if(T.e.fix>0.004)money.push(["Umkleiden und Prämien im Schnitt",eur(T.e.fix)]);
+  if(T.e.abz>0.004)money.push(["Ausbleibezeit, Verpflegung (steuerfrei)",eur(T.e.abz)]);
+  if(T.e.fremd>0.004)money.push([`Prämie Fremdsprache (${T.abz.fremd} × 0,77 €)`,eur(T.e.fremd)]);
   if(T.e.abs>0.004)money.push([`Urlaub und Krankheit (${fmt(T.absH,1)} Std × ${fmt(+cfg().absRate)} €)`,eur(T.e.abs)]);
   money.push(["Zuschläge gesamt",eur(T.zu)],["Brutto",eur(T.base+T.zu),"total"]);
   if(T.taxfree>0.004)money.push(["davon steuerfrei (Schätzung)",eur(T.taxfree),"good"]);
@@ -1133,10 +1187,12 @@ function fillTimes(){
   const sh=editing.sh,w=sh.t==="W";
   $("times").hidden=!w;$("quick").hidden=!w;
   if(w){$("tStart").value=sh.s||"";$("tEnd").value=sh.e||"";$("tBreak").value=sh.b??0}
+  $("tAwayL").hidden=!w||!abzKind(cfg());$("tAway").checked=!!sh.away;
   updPreview();
 }
-function readTimes(){if(editing.sh.t==="W"){editing.sh.s=normTime($("tStart").value)||"";editing.sh.e=normTime($("tEnd").value)||"";editing.sh.b=Math.max(0,N($("tBreak").value)||0)}}
+function readTimes(){if(editing.sh.t==="W"){editing.sh.s=normTime($("tStart").value)||"";editing.sh.e=normTime($("tEnd").value)||"";editing.sh.b=Math.max(0,N($("tBreak").value)||0);if($("tAway").checked)editing.sh.away=true;else delete editing.sh.away}}
 $("tBreak").addEventListener("input",()=>{editing&&(editing.autoB=false)});
+$("tAway").addEventListener("change",()=>{editing&&updPreview()});
 function updPreview(){
   readTimes();
   const w=editing.sh.t==="W";
@@ -1265,7 +1321,10 @@ const PROF_FIELDS={
     ["auto","Gehalt aus der Tabelle","sel",opt([["0","Nein, mein eingetragener Betrag"],["1","Ja, mit Stufenaufstieg"]]),"Zulo nimmt das Jahrestabellenentgelt deiner Entgeltgruppe und Stufe und erhöht es von selbst"],
     ["fahrt","Fahrentschädigung","sel",opt([["1","Ja, 6,65 € je Schicht mit Zugfahrt"],["0","Nein"]]),"Für Bordservice, Lokführer, Zugtechniker, Lokrangierführer und Transportlogistiker"],
     ["efu","Entschädigung fürs Umkleiden","sel",opt([["1","Ja, 50 € im Monat"],["0","Nein"]]),"Wenn du Unternehmensbekleidung tragen musst (FGr 2 bis 6)"],
-    ["praem","Prämien im Schnitt je Monat","num",null,"Zum Beispiel Umsatzbeteiligung und Nachlöseprämie. Steht in der Nachberechnung deiner Abrechnung"]],
+    ["praem","Prämien im Schnitt je Monat","num",null,"Zum Beispiel Umsatzbeteiligung und Nachlöseprämie. Steht in der Nachberechnung deiner Abrechnung"],
+    ["abz","Ausbleibezeit (Verpflegungspauschale)","sel",opt([["fahrt","Fahrt: 6 / 9 / 13 €"],["ewt","Einsatzwechsel: 4,09 bis 9,71 €"],["0","Nein"]]),"Je Tag ab 8, 14 oder 24 Stunden weg von zu Hause, steuerfrei. Fahrtätigkeit für FGr 2, 4 und 5, zum Beispiel Zugbegleiter und Lokführer"],
+    ["weg","Weg zur Arbeit je Richtung","num",null,"Minuten von der Wohnung bis zum Dienstbeginn. Zählt mit zur Ausbleibezeit"],
+    ["fremd","Prämie Fremdsprache","sel",opt([["0","Nein"],["1","Ja, 0,77 € je Schicht"]]),"Steht als Prämie Fremdsprache in deiner Nachberechnung"]],
   dbgdl:[["eg","Entgeltgruppe","txt",null,"Auf der Abrechnung"],["stufe","Entgeltstufe","num",null,"Auf der Abrechnung"],
     ["beginn","Beschäftigt seit","date",null,"Beschäftigungsbeginn auf der Abrechnung"],
     ["modell","Auszahlungsmodell","sel",opt([["12","12er"],["12.5","12,5er"],["13","13er"]]),"Steht auf der Abrechnung"],
@@ -1286,17 +1345,23 @@ const PROF_FIELDS={
   gesetz:[["eg","Entgeltgruppe","txt",null,"Falls vorhanden"],["seit","Beschäftigt seit","date",null,""]],
   eigen:[["eg","Entgeltgruppe","txt",null,"Falls vorhanden"],["stufe","Stufe","num",null,""],["seit","In dieser Stufe seit","date",null,""]]
 };
+/* Auswärts unterwegs (Fahrer, Monteure, Pflege im Außendienst): Verpflegungspauschale für die Steuererklärung */
+["dbgdl","tvoed","tvl","chemie","gesetz","eigen"].forEach(t=>PROF_FIELDS[t]&&PROF_FIELDS[t].push(
+  ["abz","Beruflich auswärts unterwegs","sel",opt([["0","Nein"],["st","Ja, Verpflegungspauschale für die Steuer"]]),"Ab 8 Stunden weg von zu Hause 14 €, für 24 Stunden 28 €. Zulo zählt die Tage für deine Steuererklärung"],
+  ["weg","Weg zur Arbeit je Richtung","num",null,"Minuten von der Wohnung bis zum Arbeitsbeginn"]));
 function profShow(k,v){
   if(v==null||v==="")return "";
   if(k==="modell")return MODELL[v]||v;if(k==="wahl")return WAHL[v]||v;if(k==="beginn"||k==="seit")return deDate(v);
-  if(k==="fahrt"||k==="efu"||k==="auto")return v==="1"?"ja":"nein";
+  if(k==="fahrt"||k==="efu"||k==="auto"||k==="fremd")return v==="1"?"ja":"nein";
+  if(k==="abz")return {fahrt:"Fahrtätigkeit",ewt:"Einsatzwechseltätigkeit",st:"nur Steuer","0":"nein"}[v]||v;
+  if(k==="weg")return fmt(+v,0)+" min";
   if(k==="praem")return eur(+v||0);
   if(k==="zug")return {s:"Schichtarbeit (ZUG-S)",s2:"Schicht, 2 freie Tage",n:"Ohne Schicht",off:"Nicht einrechnen"}[v]||v;
   return String(v);
 }
 function renderProf(){
   const c=cfg(),P=c.prof=c.prof||{},F=PROF_FIELDS[c.tarif]||[];
-  $("profCard").innerHTML=F.map(([k,l,ty,o,hint])=>{const v=(c.tarif==="dbevg"&&["fahrt","efu","auto","fgr"].includes(k))?profDef(c,k):P[k]??(k==="jsz"&&c.tarif==="tvoed"?"85":k==="jl"&&c.tarif==="chemie"?"95":k==="ug"&&c.tarif==="chemie"?"40":k==="modell"?"12":k==="auto"?"0":"");
+  $("profCard").innerHTML=F.map(([k,l,ty,o,hint])=>{const v=(c.tarif==="dbevg"&&["fahrt","efu","auto","fgr","abz"].includes(k))?profDef(c,k):k==="weg"?(P.weg??50):k==="fremd"||k==="abz"?(P[k]??"0"):P[k]??(k==="jsz"&&c.tarif==="tvoed"?"85":k==="jl"&&c.tarif==="chemie"?"95":k==="ug"&&c.tarif==="chemie"?"40":k==="modell"?"12":k==="auto"?"0":"");
     const ctl=ty==="sel"?`<select id="pf_${k}">${o.map(([a,b])=>`<option value="${esc(a)}"${String(v)===String(a)?" selected":""}>${esc(b)}</option>`).join("")}</select>`:
       ty==="date"?`<input id="pf_${k}" type="date" value="${esc(v)}">`:
       `<input id="pf_${k}" type="text" ${ty==="num"?'data-num="1" inputmode="decimal"':'autocapitalize="characters"'} value="${esc(String(v))}">${k==="jsz"||k==="jl"?'<span class="unit">%</span>':k==="ug"?'<span class="unit">€</span>':k==="az"?'<span class="unit">Std</span>':""}`;
@@ -1784,6 +1849,8 @@ function slipParse(lines){
   /* Bahn: Fahrentschädigung, Umkleiden und Prämien aus der Nachberechnung */
   {const e=R.prof.find(x=>x.k==="eg");if(e&&/^[1-6]\d\d$/.test(String(e.v)))R.prof.push({k:"fgr",l:"Funktionsgruppe",v:String(e.v)[0],show:"FGr "+String(e.v)[0]})}
   if(/fahrentsch/i.test(all))R.prof.push({k:"fahrt",l:"Fahrentschädigung",v:"1",show:"ja, je Schicht mit Zugfahrt"});
+  if(/ausbleibe/i.test(all))R.prof.push({k:"abz",l:"Ausbleibezeit",v:"fahrt",show:"ja, Vergütung Ausbleibezeit erkannt"});
+  if(/pr[äa]mie\s*fremdspr/i.test(all))R.prof.push({k:"fremd",l:"Prämie Fremdsprache",v:"1",show:"ja, 0,77 € je Schicht"});
   if(/umkleide|\befu\b/i.test(all))R.prof.push({k:"efu",l:"Entschädigung fürs Umkleiden",v:"1",show:"ja, 50 € im Monat"});
   {const pr=R.other.filter(o=>/umsatz|nachl[öo]se/i.test(o.l)).reduce((a,o)=>a+o.a,0);if(pr>0)R.prof.push({k:"praem",l:"Prämien im Schnitt",v:Math.round(pr*100)/100,show:eur(pr)+" (aus dieser Abrechnung)"})}
   if(R.swap)R.other.forEach(o=>{if(o.nightFlat){o.act="skip";o.swapNote=true}});
