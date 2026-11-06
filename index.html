@@ -62,6 +62,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .hero .zu{color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
 .hero .sub{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .hero .tf{color:var(--muted);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.hints{display:grid;gap:6px;margin-top:8px}
+.hints button{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));background:color-mix(in srgb,var(--accent) 9%,var(--surface));color:var(--fg);border-radius:12px;padding:9px 11px;font:500 13px/1.35 var(--body);cursor:pointer}
+.hints button i{flex:0 0 8px;height:8px;border-radius:50%;background:var(--accent);margin-top:5px}
+.hints button b{color:var(--accent);font-weight:700;white-space:nowrap}
 .hero .zuline{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;margin-top:6px}
 .tarifchip{grid-column:1/-1;margin-top:8px;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 .tarifchip b{color:var(--fg);font-weight:600}
@@ -70,6 +74,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .dow div{font-size:11px;text-align:center;color:var(--muted);font-weight:600;letter-spacing:.06em;padding-bottom:4px}
 .day{position:relative;aspect-ratio:1/1.18;max-width:100%;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--fg);padding:5px 4px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;min-width:0}
 .day.out{visibility:hidden}
+.day.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,var(--surface));box-shadow:0 0 0 2px var(--accent) inset}
+.grid.selecting{touch-action:none}
 .day .n{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
 .day.sun .n,.day.hol .n{color:var(--accent)}
 .day.today{border-color:var(--accent)}
@@ -341,6 +347,7 @@ s.addEventListener("click",function(){if(started&&Date.now()-startedAt>700)hide(
       <div class="lbl" id="hLbl">Netto aufs Konto</div><div class="big" id="hNetto">0 €</div><div class="sub" id="hBrutto"></div>
       <div class="zuline"><span class="zu" id="hZu"></span><span class="tf" id="hTf"></span></div>
       <div class="sub" id="hSub"></div>
+      <div class="hints" id="hHint" hidden></div>
       <div class="tarifchip"><span>Tarif: <b id="hTarif"></b></span><button id="hTarifBtn">Ändern</button></div>
     </div>
     <div class="card paycard" id="payCard"></div>
@@ -990,6 +997,29 @@ function monthTotals(y,m){
   T.e.abz=0;T.e.fremd=0;{const A=abzMonth(y,m);if(A){T.abz=A;if(A.kind!=="st"){T.e.abz=A.tarif;T.taxfree+=A.tarif;T.zu+=A.tarif}T.e.fremd=A.fremdEur;T.zu+=A.fremdEur}}
   return T;
 }
+/* Hinweise, warum der Betrag noch nicht genau sein kann, mit einem Tipp zur Lösung */
+function goSet(id){showView("set");setTimeout(()=>{const el=$(id);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})},80)}
+function hints(y,m){
+  const c=cfg(),H=[],now=new Date(),ym=`${y}-${pad(m+1)}`,isCur=now.getFullYear()===y&&now.getMonth()===m,past=new Date(y,m+1,0)<now;
+  const has=(yy,mm)=>{const n=new Date(yy,mm+1,0).getDate();for(let i=1;i<=n;i++){const sh=state.shifts[dk(yy,mm,i)];if(sh&&!sh.demo&&TYPES[sh.t])return true}return false};
+  if(Object.values(state.shifts).some(s=>s.demo))return H;
+  const A=(state.actual||{})[ym];
+  /* Abrechnung: ab dem Zahltag des Monats, solange sie nicht eingelesen ist */
+  const pd=payDay(c)||25;
+  if(!A&&isMonth(c)&&(past||(isCur&&now.getDate()>=pd-3))&&new Date(y,m,1)>new Date(now.getFullYear(),now.getMonth()-3,1))
+    H.push({t:`Abrechnung für ${MONTHS[m]} schon da? Einlesen, dann zeigt Zulo den genauen Betrag.`,b:"Einlesen",go:()=>goSet("slipCard")});
+  /* Zulagen kommen aus dem Vormonat: fehlen dort Schichten, fehlt hier Geld */
+  const dl=+(c.rules.delay??1);
+  if(!A&&dl>0){const b=new Date(y,m-dl,1);if(!has(b.getFullYear(),b.getMonth()))H.push({t:`Im ${MONTHS[b.getMonth()]} sind keine Schichten eingetragen. Die Zulagen daraus fehlen hier noch.`,b:"Ansehen",go:()=>{cur={y:b.getFullYear(),m:b.getMonth()};render();window.scrollTo(0,0)}})}
+  /* Laufender Monat schon eine Woche alt und noch leer */
+  if(isCur&&now.getDate()>7&&!has(y,m))H.push({t:`Im ${MONTHS[m]} ist noch nichts eingetragen. Tippe unten auf einen Tag.`,b:"",go:()=>{const g=$("grid");if(g)g.scrollIntoView({behavior:"smooth",block:"center"})}});
+  /* Bahn: ohne Entgeltgruppe kann Zulo Stufe, Zulagen und Ausbleibezeit nicht sicher zuordnen */
+  if(c.tarif==="dbevg"&&!(c.prof||{}).eg)H.push({t:"Deine Entgeltgruppe fehlt noch. Sie steht auf der Abrechnung, Zulo liest sie beim Einlesen selbst.",b:"Eintragen",go:()=>goSet("profCard")});
+  return H.slice(0,2);
+}
+function renderHints(y,m){const el=$("hHint");if(!el)return;const H=hints(y,m);el.hidden=!H.length;
+  el.innerHTML=H.map((h,i)=>`<button type="button" data-i="${i}"><i></i><span>${esc(h.t)}${h.b?` <b>${esc(h.b)}</b>`:""}</span></button>`).join("");
+  el.querySelectorAll("button").forEach(b=>b.onclick=()=>H[+b.dataset.i].go())}
 function render(){
   const {y,m}=cur,c=cfg();
   $("mtitle").textContent=`${MONTHS[m]} ${y}`;
@@ -1015,6 +1045,7 @@ function render(){
   $("hTf").textContent=dl>0?(()=>{const f=new Date(y,m+dl,1);return `brutto, kommen ${payWhen(c,f.getFullYear(),f.getMonth())} aufs Konto`})():(T.taxfree>0.5?`davon ca. ${eur0(T.taxfree)} steuerfrei`:"");
   $("hSub").textContent=isMonth(c)?`${hrs(T.paid)} · ${T.shifts} Schichten · Gehalt ${eur0(+c.monthly||0)} + Zuschläge`:`${hrs(T.paid)} · ${T.shifts} Schichten · ${fmt(+c.wage||0)} € pro Stunde`;
   $("hTarif").textContent=PRESETS[c.tarif].name+(c.modified?" (angepasst)":"");
+  renderHints(y,m);
   const g=$("grid");g.innerHTML="";
   const first=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate();
   const tk=keyOf(new Date());
@@ -1031,11 +1062,11 @@ function render(){
       html+=`<span class="chip" style="background:${sh.nof?"var(--f-off)":TYPES[sh.t].color}">${sh.nof?"B":sh.away?"Ü":sh.t}</span>`;
       if(r.zu>0.005)html+=`<span class="dot"></span>`;
     }
-    b.innerHTML=html;b.onclick=()=>openSheet(k);g.appendChild(b);
+    b.innerHTML=html;b.dataset.k=k;b.onclick=()=>{if(daySel.skip){daySel.skip=false;return}openSheet(k)};g.appendChild(b);
   }
   $("legend").innerHTML=Object.entries(TYPES).map(([k,t])=>`<span><i style="background:${t.color}"></i>${k} ${t.name}</span>`).join("")+`<span><i style="background:var(--f-off)"></i>B Bereitschaft</span><span><i style="background:var(--f-night)"></i>Ü Übernachtung</span>`;
   const hols=Object.entries(holidays(y,c.land)).filter(([k])=>k.startsWith(`${y}-${pad(m+1)}`)).map(([k,n])=>`${+k.slice(8)}. ${n}`);
-  $("calNote").textContent=(hols.length?`Feiertage in ${LAENDER[c.land]}: ${hols.join(", ")}. `:"")+"Orange Zahl = Sonntag oder Feiertag, Punkt = Schicht mit Zuschlag.";
+  $("calNote").textContent=(hols.length?`Feiertage in ${LAENDER[c.land]}: ${hols.join(", ")}. `:"")+"Orange Zahl = Sonntag oder Feiertag, Punkt = Schicht mit Zuschlag. Mehrere Tage auf einmal: Finger kurz auf einen Tag halten und über die Tage ziehen.";
   renderSummary(T);
 }
 const LBL={night:"Nacht",sat:"Samstag",sun:"Sonntag",hol:"Feiertag",eve:"24. und 31.12.",high:"Hohe Feiertage"};
@@ -1116,6 +1147,26 @@ function openSheet(k){
   fillTimes();repInit();openLayer("sheet");
   if(!ex)setTimeout(()=>{try{$("tStart").focus()}catch(e){}},250);
 }
+/* Mehrere Tage durch Ziehen: Finger kurz auf einem Tag halten und über die Tage ziehen (mit der Maus einfach ziehen).
+   Danach öffnet sich das Eintragen für genau diese Tage. */
+const daySel={on:false,a:null,b:null,t:0,skip:false,x:0,y:0};
+function openRange(a,b){if(a>b)[a,b]=[b,a];openSheet(a);if(a===b)return;
+  editing.rep={on:true,to:b,wd:[true,true,true,true,true,true,true],touched:true};
+  $("repOn").checked=true;$("repBox").hidden=false;$("repTo").value=b;repDraw();updPreview()}
+function selPaint(){const [a,b]=[daySel.a,daySel.b].sort();document.querySelectorAll("#grid .day[data-k]").forEach(d=>d.classList.toggle("sel",daySel.on&&d.dataset.k>=a&&d.dataset.k<=b))}
+function selKeyAt(x,y){const el=document.elementFromPoint(x,y),d=el&&el.closest&&el.closest(".day[data-k]");return d?d.dataset.k:null}
+function selStart(k){daySel.on=true;daySel.a=daySel.b=k;$("grid").classList.add("selecting");try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}selPaint()}
+function selEnd(){clearTimeout(daySel.t);if(!daySel.on)return;daySel.on=false;$("grid").classList.remove("selecting");const a=daySel.a,b=daySel.b;selPaint();daySel.skip=true;setTimeout(()=>{daySel.skip=false},400);if(a&&b&&a!==b)openRange(a,b);else daySel.skip=false}
+(function(){const g=$("grid");
+  g.addEventListener("touchstart",e=>{const t=e.touches[0],k=selKeyAt(t.clientX,t.clientY);if(!k||e.touches.length>1)return;daySel.x=t.clientX;daySel.y=t.clientY;clearTimeout(daySel.t);daySel.t=setTimeout(()=>selStart(k),380)},{passive:true});
+  g.addEventListener("touchmove",e=>{const t=e.touches[0];if(!daySel.on){if(Math.hypot(t.clientX-daySel.x,t.clientY-daySel.y)>10)clearTimeout(daySel.t);return}e.preventDefault();const k=selKeyAt(t.clientX,t.clientY);if(k&&k!==daySel.b){daySel.b=k;selPaint()}},{passive:false});
+  g.addEventListener("touchend",selEnd);g.addEventListener("touchcancel",()=>{clearTimeout(daySel.t);daySel.on=false;$("grid").classList.remove("selecting");selPaint()});
+  g.addEventListener("contextmenu",e=>{if(daySel.on||daySel.t)e.preventDefault()});
+  /* Maus */
+  g.addEventListener("mousedown",e=>{if(e.button!==0)return;const k=selKeyAt(e.clientX,e.clientY);if(!k)return;daySel.a=daySel.b=k;daySel.mouse=true});
+  g.addEventListener("mousemove",e=>{if(!daySel.mouse)return;const k=selKeyAt(e.clientX,e.clientY);if(!k)return;if(!daySel.on&&k!==daySel.a){daySel.on=true;g.classList.add("selecting")}if(daySel.on&&k!==daySel.b){daySel.b=k;selPaint()}});
+  window.addEventListener("mouseup",()=>{if(!daySel.mouse)return;daySel.mouse=false;selEnd()});
+})();
 /* Mehrere Tage auf einmal: vom gewählten Tag bis zu einem Datum, nur an den gewählten Wochentagen */
 const WDN=["Mo","Di","Mi","Do","Fr","Sa","So"];
 function repInit(){
