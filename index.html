@@ -125,6 +125,8 @@ textarea{width:100%;min-height:90px;font:500 16px ui-monospace,monospace;resize:
 .mod{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px}
 .card:not(.showadv) .adv{display:none!important}
 .morebtn{display:block;margin:10px 0 4px}
+.obq{display:grid;gap:6px;margin:12px 0 4px;padding:12px;border-radius:14px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.obq span{font-size:13px;color:var(--muted)}
 .linkbtn{border:0;background:none;color:var(--accent);font:700 13px var(--body);cursor:pointer;padding:0}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0}
 .scrim{position:fixed;inset:0;background:rgb(0 0 0/.55);z-index:20}
@@ -512,7 +514,12 @@ s.addEventListener("click",function(){if(started&&Date.now()-startedAt>700)hide(
     <div class="grab"></div>
     <h3 id="obTitle">Willkommen bei Zulo</h3>
     <div class="meta">Ein paar Angaben, dann rechnet Zulo deine Zuschläge automatisch.</div>
-    <div class="sec" style="margin-top:6px">1. Nach welchem Tarif wirst du bezahlt?</div>
+    <div class="obq">
+      <b>Am schnellsten: Lohnabrechnung einlesen</b>
+      <span>Zulo stellt Tarif, Gehalt, Entgeltgruppe, Steuerklasse und Krankenkasse selbst ein. Die Abrechnung wird nur auf diesem Gerät gelesen.</span>
+      <div class="btnrow"><button type="button" class="btn pri small" id="obSlip">PDF auswählen</button><button type="button" class="btn sec2 small" id="obPhoto">Foto</button></div>
+    </div>
+    <div class="sec" style="margin-top:14px">Oder von Hand: 1. Nach welchem Tarif wirst du bezahlt?</div>
     <div class="tlist" id="obTarif"></div>
     <div class="sec">2. Grunddaten</div>
     <div class="types" style="grid-template-columns:1fr 1fr" id="obMode"><button type="button" data-m="month" aria-pressed="true">Monatsgehalt</button><button type="button" data-m="hour" aria-pressed="false">Stundenlohn</button></div>
@@ -1006,6 +1013,7 @@ function hints(y,m){
   const has=(yy,mm)=>{const n=new Date(yy,mm+1,0).getDate();for(let i=1;i<=n;i++){const sh=state.shifts[dk(yy,mm,i)];if(sh&&!sh.demo&&TYPES[sh.t])return true}return false};
   if(Object.values(state.shifts).some(s=>s.demo))return H;
   const A=(state.actual||{})[ym];
+  if(isMonth(c)&&!(+c.monthly>0)&&!(c.prof&&c.prof.auto==="1"))H.push({t:"Dein Monatsgehalt fehlt noch. Lies am besten deine Abrechnung ein.",b:"Einlesen",go:()=>goSet("slipCard")});
   /* Abrechnung: ab dem Zahltag des Monats, solange sie nicht eingelesen ist */
   const pd=payDay(c)||25;
   if(!A&&isMonth(c)&&(past||(isCur&&now.getDate()>=pd-3))&&new Date(y,m,1)>new Date(now.getFullYear(),now.getMonth()-3,1))
@@ -1562,6 +1570,11 @@ function startOnboarding(){
   $("obMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{obMode=b.dataset.m;$("obMode").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));$("obMonth").hidden=obMode!=="month";$("obHourL").hidden=obMode!=="hour"});
   openLayer("onboard");
 }
+/* Schnellstart: Grundeinstellung anlegen, dann sofort die Abrechnung einlesen */
+function obQuick(){if(!state.cfg)state.cfg={tarif:obPick,payMode:"month",wage:0,monthly:0,hours:39,land:$("obLand").value,rules:clone(PRESETS[obPick].rules),modified:false,ob:true,tax:{stkl:+$("obStkl").value,kinder:0,kirche:false,kvz:2.9,kinderlos23:true,pvKinder:0}};
+  save();$("onboard").hidden=true;$("scrim").hidden=true;showView("set");render()}
+$("obSlip").onclick=()=>{$("slipFile").click();obQuick()};
+$("obPhoto").onclick=()=>{obQuick();$("slipPhotoBtn").click()};
 $("obGo").onclick=()=>{
   const num=id=>N($(id).value);
   const w=num("obWage"),mo=num("obMonthly"),h=num("obHours");
@@ -1881,7 +1894,7 @@ function slipParse(lines){
   if(/umkleide|\befu\b/i.test(all))R.prof.push({k:"efu",l:"Entschädigung fürs Umkleiden",v:"1",show:"ja, 50 € im Monat"});
   {const pr=R.other.filter(o=>/umsatz|nachl[öo]se/i.test(o.l)).reduce((a,o)=>a+o.a,0);if(pr>0)R.prof.push({k:"praem",l:"Prämien im Schnitt",v:Math.round(pr*100)/100,show:eur(pr)+" (aus dieser Abrechnung)"})}
   if(R.swap)R.other.forEach(o=>{if(o.nightFlat){o.act="skip";o.swapNote=true}});
-  R.check=dbCheck;R.src=src;
+  R.check=dbCheck;R.src=src;R.isDB=dbCheck.length>0||/deutsche bahn|db fernverkehr|db regio|db cargo|db netz|db intercity|db infrago/i.test(all);
   return R;
 }
 /* Bei Menge x Satz: steht die Menge vor dem Satz? Erste Zahl in der Zeile ist meist die Menge */
@@ -1907,7 +1920,10 @@ function slipRender(){
   $("slRes").querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>cb.closest(".fi").classList.toggle("off",!cb.checked));
 }
 function slipApply(){
-  if(!slip)return;const c=cfg(),t=taxCfg(c),R=slip,box=$("slRes");let nR=0,nI=0,nB=0;
+  if(!slip)return;
+  /* Erste Abrechnung beim Schnellstart: Bahn Abrechnung erkannt, dann gleich den Bahn Tarif nehmen */
+  if(state.cfg&&state.cfg.ob){const c0=state.cfg;if(slip.isDB&&!/^db/.test(c0.tarif)){c0.tarif="dbevg";c0.rules=clone(PRESETS.dbevg.rules);c0.modified=false}delete c0.ob}
+  const c=cfg(),t=taxCfg(c),R=slip,box=$("slRes");let nR=0,nI=0,nB=0;
   const on=(g,i)=>{const el=box.querySelector(`[data-g="${g}"][data-i="${i}"]`);return el?(el.type==="checkbox"?el.checked:el.value):null};
   R.base.forEach((b,i)=>{if(!on("base",i))return;nB++;
     if(b.k==="monthly"){c.monthly=b.v;c.payMode="month"}else if(b.k==="hours")c.hours=b.v;
