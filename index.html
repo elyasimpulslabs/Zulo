@@ -431,6 +431,10 @@ s.addEventListener("click",function(){if(started&&Date.now()-startedAt>700)hide(
       <div class="pinfo adv" id="tGdbInfo" hidden style="padding:0 0 10px"></div>
       <label class="f adv" for="tKl"><span>Kinderlos und mindestens 23<small>Zuschlag zur Pflegeversicherung</small></span><span class="inp"><select id="tKl"><option value="1">ja</option><option value="0">nein</option></select></span></label>
     </div>
+    <div class="sec">Erinnerungen</div>
+    <div class="card">
+      <div class="f"><span>In den Kalender deines Handys<small id="icsHint">Jeden Monat eine Erinnerung am Zahltag: Abrechnung einlesen. Dazu am Monatsende: Schichten prüfen. Dein Handy meldet sich dann von selbst, ganz ohne Server.</small></span><span class="inp"><button type="button" class="btn sec2 small" id="bIcs">Eintragen</button></span></div>
+    </div>
     <button type="button" class="btn sec2 wide" id="moreSetBtn" style="width:100%;margin:6px 0 14px">Weitere Einstellungen anzeigen</button>
     <div id="moreSet" hidden>
     <div class="sec">Sonderzahlungen im Jahr</div>
@@ -1295,6 +1299,17 @@ function addMore(){document.querySelectorAll("#v-set .card").forEach(cd=>{if(!cd
   let b=cd.querySelector(":scope>.morebtn");if(!b){b=document.createElement("button");b.type="button";b.className="linkbtn morebtn";cd.appendChild(b);b.onclick=()=>{cd.classList.toggle("showadv");b.textContent=cd.classList.contains("showadv")?"Weniger anzeigen":"Mehr anzeigen"}}
   else cd.appendChild(b);b.textContent=cd.classList.contains("showadv")?"Weniger anzeigen":"Mehr anzeigen"})}
 $("moreSetBtn").onclick=()=>{const m=$("moreSet");m.hidden=!m.hidden;$("moreSetBtn").textContent=m.hidden?"Weitere Einstellungen anzeigen":"Weitere Einstellungen ausblenden"};
+/* Erinnerungen als Kalenderdatei: monatlich wiederkehrend, mit Hinweis auf dem Handy */
+function icsText(){const c=cfg(),pd=payDay(c)||25,abz=!!abzKind(c),now=new Date(),st=new Date(now.getFullYear(),now.getMonth(),1);
+  const d8=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`,stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+/,"");
+  const ev=(uid,day,time,title,desc,rule)=>["BEGIN:VEVENT",`UID:${uid}@zulo`,`DTSTAMP:${stamp}`,`DTSTART:${d8(day)}T${time}00`,`DURATION:PT15M`,`RRULE:${rule}`,`SUMMARY:${title}`,`DESCRIPTION:${desc}`,"BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${title}`,"TRIGGER:PT0M","END:VALARM","END:VEVENT"].join("\r\n");
+  const first=new Date(st.getFullYear(),st.getMonth(),Math.min(pd,28)),last=new Date(st.getFullYear(),st.getMonth()+1,0);
+  const E=[ev("zulo-abrechnung",first,"1800","Zulo: Abrechnung einlesen","Deine Lohnabrechnung ist da. In Zulo unter Lohn einlesen\\, dann stimmt der Betrag genau.",`FREQ=MONTHLY;BYMONTHDAY=${pd}`),
+    ev("zulo-monatsende",last,"1900",abz?"Zulo: Schichten prüfen und Ausbleibezettel abgeben":"Zulo: Schichten prüfen",abz?"Sind alle Schichten in Zulo eingetragen? Dann den Ausbleibezettel abgeben.":"Sind alle Schichten des Monats in Zulo eingetragen?","FREQ=MONTHLY;BYMONTHDAY=-1")];
+  return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Zulo//Erinnerungen//DE","CALSCALE:GREGORIAN",...E,"END:VCALENDAR",""].join("\r\n")}
+$("bIcs").onclick=()=>{try{const b=new Blob([icsText()],{type:"text/calendar;charset=utf-8"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;
+  if(/iPhone|iPad|iPod/.test(navigator.userAgent))a.target="_blank";else a.download="zulo-erinnerungen.ics";
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);toast("Kalender öffnet sich, dort Hinzufügen tippen")}catch(e){toast("Kalender konnte nicht geöffnet werden")}};
 function renderSettings(){
   const c=cfg(),P=PRESETS[c.tarif];
   $("sTarif").innerHTML=Object.entries(PRESETS).map(([k,p])=>`<option value="${k}"${k===c.tarif?" selected":""}>${p.name}</option>`).join("");
