@@ -127,6 +127,7 @@ textarea{width:100%;min-height:90px;font:500 16px ui-monospace,monospace;resize:
 .morebtn{display:block;margin:10px 0 4px}
 .obq{display:grid;gap:6px;margin:12px 0 4px;padding:12px;border-radius:14px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
 .obq span{font-size:13px;color:var(--muted)}
+.planrow{display:flex;justify-content:flex-end;margin:-4px 2px 8px}
 .linkbtn{border:0;background:none;color:var(--accent);font:700 13px var(--body);cursor:pointer;padding:0}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0}
 .scrim{position:fixed;inset:0;background:rgb(0 0 0/.55);z-index:20}
@@ -355,6 +356,7 @@ s.addEventListener("click",function(){if(started&&Date.now()-startedAt>700)hide(
       <div class="tarifchip"><span>Tarif: <b id="hTarif"></b></span><button id="hTarifBtn">Ändern</button></div>
     </div>
     <div class="card paycard" id="payCard"></div>
+    <div class="planrow"><button type="button" class="linkbtn" id="planPick">Dienstplan als PDF einlesen</button><input type="file" id="planFile" accept="application/pdf,.pdf" tabindex="-1" aria-hidden="true"></div>
     <div class="dow"><div>MO</div><div>DI</div><div>MI</div><div>DO</div><div>FR</div><div>SA</div><div>SO</div></div>
     <div class="grid" id="grid"></div>
     <div class="legend" id="legend"></div>
@@ -540,6 +542,15 @@ s.addEventListener("click",function(){if(started&&Date.now()-startedAt>700)hide(
   </div>
 </div>
 
+<div class="sheet" id="planSheet" role="dialog" aria-modal="true" aria-labelledby="plTitle" hidden>
+  <div class="in">
+    <div class="grab"></div>
+    <h3 id="plTitle">Dienstplan einlesen</h3>
+    <div class="meta">Wird nur auf diesem Gerät gelesen</div>
+    <div id="plRes"></div>
+    <div class="actions"><button class="btn sec2" id="plCancel">Abbrechen</button><button class="btn pri" id="plApply" hidden>Übernehmen</button></div>
+  </div>
+</div>
 <div class="sheet" id="slipSheet" role="dialog" aria-modal="true" aria-labelledby="slTitle" hidden>
   <div class="in">
     <div class="grab"></div>
@@ -1073,7 +1084,7 @@ function render(){
     if(sh&&TYPES[sh.t]){
       const r=calc(k,shiftFor(sh),calcCfg());
       if(TYPES[sh.t].work)html+=`<span class="h">${(r.paid/60).toLocaleString("de-DE",{maximumFractionDigits:1})}h</span>`;
-      html+=`<span class="chip" style="background:${sh.nof?"var(--f-off)":TYPES[sh.t].color}">${sh.nof?"B":sh.away?"Ü":sh.t}</span>`;
+      html+=`<span class="chip" style="background:${sh.nof?"var(--f-off)":sh.away?"var(--f-night)":TYPES[sh.t].color}">${sh.nof?"B":sh.away?"Ü":sh.t}</span>`;
       if(r.zu>0.005)html+=`<span class="dot"></span>`;
     }
     b.innerHTML=html;b.dataset.k=k;b.onclick=()=>{if(daySel.skip){daySel.skip=false;return}openSheet(k)};g.appendChild(b);
@@ -1256,7 +1267,7 @@ const canHist=(()=>{try{return window.self===window.top}catch(e){return false}})
 let layerPushed=false,viewPushed=false,curView="cal",ignorePop=false;
 function openLayer(id){$("scrim").hidden=false;$(id).hidden=false;
   if(canHist&&!layerPushed&&id!=="onboard"){try{history.pushState({zulo:"layer"},"");layerPushed=true}catch(e){}}}
-function hideLayers(){$("scrim").hidden=true;$("sheet").hidden=true;$("slipSheet").hidden=true;$("newsSheet").hidden=true;newsOpen=null;editing=null;slipReset()}
+function hideLayers(){$("scrim").hidden=true;$("sheet").hidden=true;$("slipSheet").hidden=true;$("planSheet").hidden=true;plan=null;$("newsSheet").hidden=true;newsOpen=null;editing=null;slipReset()}
 function closeSheet(){if(!state.cfg)return;hideLayers();if(layerPushed){layerPushed=false;ignorePop=true;try{history.back()}catch(e){ignorePop=false}}}
 window.addEventListener("popstate",()=>{
   if(ignorePop){ignorePop=false;return}
@@ -1988,7 +1999,7 @@ $("slipFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f
   if(f.size>15e6){toast("Die Datei ist zu groß");e.target.value="";return}
   slipOpen("Wird nur auf diesem Gerät gelesen");
   try{slipBuf=new Uint8Array(await f.arrayBuffer())}catch(err){$("slErr").hidden=false;$("slErr").textContent="Datei konnte nicht geöffnet werden.";return}finally{e.target.value=""}
-  const run=pw=>slipRun(()=>pdfLines(slipBuf.slice(),pw));
+  const run=pw=>slipRun(async()=>{const L=await pdfLines(slipBuf.slice(),pw);if(/einsatzplan/i.test(L.join(" "))&&L.filter(l=>PMRE.test(l)).length>=3){const b=slipBuf.slice();setTimeout(()=>{hideLayers();planRun(b)},0);throw new Error("Das ist ein Dienstplan, er wird eingelesen")}return L});
   $("slPwGo").onclick=()=>{const pw=$("slPwIn").value;$("slPwIn").value="";$("slPw").hidden=true;run(pw)};
   run();
 };
@@ -1996,6 +2007,124 @@ $("slPwIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault(
 $("slipPaste").onclick=()=>{slipOpen("Wird nur auf diesem Gerät gelesen");$("slPaste").hidden=false;setTimeout(()=>{try{$("slText").focus()}catch(e){}},200)};
 $("slTextGo").onclick=()=>{const txt=$("slText").value;$("slText").value="";$("slPaste").hidden=true;slipRun(async()=>txt.split(/\r?\n/))};
 $("slCancel").onclick=closeSheet;$("slApply").onclick=slipApply;
+/* ---------- Dienstplan einlesen (Einsatzplan als PDF, z. B. DB Fernverkehr) ----------
+   Kopfzeilen und Dauer stehen als Text in der PDF, Dienstnummer und Uhrzeiten sind als Grafik gezeichnet.
+   Darum: Seite auf dem Gerät groß zeichnen und nur die Tageskästchen per Texterkennung lesen. Nichts verlässt das Handy. */
+const PMON={jan:0,feb:1,"mär":2,mae:2,mrz:2,mar:2,apr:3,mai:4,jun:5,jul:6,aug:7,sep:8,okt:9,oct:9,nov:10,dez:11,dec:11};
+const PMRE=/(\d{1,2})\.\s?(Jan|Feb|Mär|Mrz|Mar|Apr|Mai|Jun|Jul|Aug|Sep|Okt|Nov|Dez)\b/i;
+let plan=null;
+function ocrTsv(bufs,psm){const w=ocrWorker(),id=++ocrSeq;return new Promise((res,rej)=>{ocrWait[id]={res,rej};w.postMessage({id,simd:ocrSimd(),images:bufs,tsv:true,psm:psm||11},bufs)})}
+function tsvWords(t){return String(t||"").split("\n").map(l=>l.split("\t")).filter(a=>a.length>=12&&a[0]==="5"&&a[11]&&a[11].trim()).map(a=>({x:+a[6],y:+a[7],w:+a[8],h:+a[9],c:+a[10],t:a[11].trim()}))}
+const hm2m=t=>{const m=/^(\d{1,2})[:.](\d{2})$/.exec(t||"");return m&&+m[1]<48&&+m[2]<60?+m[1]*60+ +m[2]:null};
+const m2hm=v=>{v=((v%1440)+1440)%1440;return pad(Math.floor(v/60))+":"+pad(v%60)};
+async function planRead(buf,onStep){
+  const lib=await loadPdf();
+  const doc=await lib.getDocument({data:buf,isEvalSupported:false,disableFontFace:true,useSystemFonts:false,disableAutoFetch:true,disableStream:true}).promise;
+  const days=[];let rng=null;
+  try{
+    for(let p=1;p<=Math.min(doc.numPages,6);p++){
+      onStep&&onStep(`Seite ${p} von ${Math.min(doc.numPages,6)} wird gelesen`);
+      const pg=await doc.getPage(p),S=4,vp=pg.getViewport({scale:S}),tc=await pg.getTextContent();
+      const it=tc.items.filter(x=>x.str&&x.str.trim()).map(x=>{const q=vp.convertToViewportPoint(x.transform[4],x.transform[5]);return {s:x.str.trim(),x:q[0],y:q[1],h:Math.hypot(x.transform[2],x.transform[3])*S,w:(x.width||0)*S}});
+      const all=it.map(x=>x.s).join(" ");
+      const rm=/(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/.exec(all);
+      if(rm)rng={a:new Date(+rm[3],+rm[2]-1,+rm[1]),b:new Date(+rm[6],+rm[5]-1,+rm[4])};
+      const dates=it.filter(x=>PMRE.test(x.s));if(!dates.length)continue;
+      /* Zeilen mit je 7 Tagen */
+      const rows=[];for(const d of dates.sort((a,b)=>a.y-b.y)){const r=rows.find(r=>Math.abs(r.y-d.y)<d.h*0.6);if(r)r.d.push(d);else rows.push({y:d.y,h:d.h,d:[d]})}
+      const durs=it.filter(x=>/^(\d{1,2}:\d{2}|-)$/.test(x.s));
+      rows.forEach(r=>{r.dur=durs.filter(x=>x.y>r.y+r.h*0.5&&x.y<r.y+r.h*3);r.dy=r.dur.length?Math.max(...r.dur.map(x=>x.y)):r.y+r.h*1.8});
+      const tms=durs.filter(x=>x.s!=="-"&&rows.some(r=>r.dur.includes(x)));if(!tms.length)continue;
+      const L=Math.min(...tms.map(x=>x.x))-3.3*S,R=Math.max(...tms.map(x=>x.x+x.w))+6*S,cw=(R-L)/7;
+      const cv=document.createElement("canvas");cv.width=Math.ceil(vp.width);cv.height=Math.ceil(vp.height);
+      const cx=cv.getContext("2d",{willReadFrequently:true});cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);
+      await pg.render({canvasContext:cx,viewport:vp}).promise;
+      const crops=[],meta=[];
+      rows.forEach((r,i)=>{const top=r.dy+2*S,nx=rows[i+1],bot=nx?nx.y-nx.h*1.3:Math.min(cv.height,top+(rows.length>1?rows[1].y-rows[0].dy-4*S:55*S));
+        if(bot-top<10*S)return;
+        const c2=document.createElement("canvas");c2.width=Math.round(R-L);c2.height=Math.round(bot-top);c2.getContext("2d").drawImage(cv,L,top,c2.width,c2.height,0,0,c2.width,c2.height);
+        crops.push(c2);meta.push({r,top})});
+      const bufs=[];for(const c2 of crops){const b=await new Promise(res=>c2.toBlob(res,"image/png"));bufs.push(await b.arrayBuffer())}
+      onStep&&onStep(`Seite ${p}: Schichten werden erkannt`);
+      const tsv=await ocrTsv(bufs,11);
+      meta.forEach((m,i)=>{const W=tsvWords(tsv[i]),cc=crops[i],px=cc.getContext("2d").getImageData(0,0,cc.width,cc.height).data,dark=(x,y)=>{x=Math.round(x);y=Math.round(y);if(x<0||y<0||x>=cc.width||y>=cc.height)return false;const o=(y*cc.width+x)*4;return px[o]+px[o+1]+px[o+2]<450};
+        /* Übernachtung: der Balken läuft als weißer Kasten bis an den rechten Rand des Tages */
+        const barOut=(x0,x1)=>{let yt=-1,yb=-1;const tot=(x1-x0-4*S)/2;
+          for(let y=0;y<cc.height;y++){let n=0;for(let x=x0+2*S;x<x1-2*S;x+=2)if(dark(x,y))n++;const f=n/tot;
+            if(f>0.12&&f<0.92){if(yt<0||y-yb>2)yt=y;yb=y;if(yb-yt>=3*S){/* Balken gefunden: bis zu seinem Ende weiterlaufen */while(yb+1<cc.height){let m=0;for(let x=x0+2*S;x<x1-2*S;x+=2)if(dark(x,yb+1))m++;if(m/tot>0.12&&m/tot<0.92)yb++;else break}break}}}
+          if(yt<0||yb-yt<3*S)return false;const ym=(yt+yb)/2,near=(x,y)=>{for(let d=-4;d<=4;d++)if(dark(x,y+d))return true;return false};
+          return [5,8,11].every(k=>{const xr=x1-k*S;return near(xr,yt)&&!dark(xr,ym)&&near(xr,yb)})};
+        const ds=m.r.d.slice().sort((a,b)=>a.x-b.x);
+        ds.forEach(d=>{const ci=Math.max(0,Math.min(6,Math.floor((d.x-L)/cw))),x0=ci*cw,x1=x0+cw;
+          const mm=PMRE.exec(d.s),mo=PMON[mm[2].toLowerCase()];
+          let y=rng?rng.a.getFullYear():new Date().getFullYear();if(rng&&mo<rng.a.getMonth())y=rng.b.getFullYear();
+          const dt=new Date(y,mo,+mm[1]);
+          const dd=m.r.dur.filter(x=>x.x>=L+x0-2*S&&x.x<L+x1-2*S).sort((a,b)=>a.x-b.x);
+          const ws=W.filter(w=>w.x+w.w/2>=x0&&w.x+w.w/2<x1).sort((a,b)=>a.y-b.y||a.x-b.x);
+          days.push({k:keyOf(dt),dt,dur:dd.map(x=>x.s),ws:ws.map(w=>({...w,rx:(w.x-x0)/cw})),bar:barOut(x0,x1)})})});
+      pg.cleanup();
+    }
+  }finally{try{await doc.destroy()}catch(e){}}
+  return planParse(days);
+}
+function planParse(days){
+  const out=[];
+  for(const d of days){
+    const T=d.ws.map(w=>w.t.replace(/[Oo]/g,"0").replace(/[;.,]/g,":")),txt=d.ws.map(w=>w.t).join(" ");
+    const ruhe=d.ws.findIndex(w=>/ruhe/i.test(w.t));
+    const times=d.ws.map((w,i)=>({w,v:hm2m(T[i].replace(/[^\d:]/g,""))})).filter((x,i)=>x.v!=null&&!(ruhe>=0&&i===ruhe+1));
+    const num=d.ws.find(w=>/^\d{3,4}$/.test(w.t));
+    const mh=d.ws.find(w=>/^(M[HK]|FF)$/i.test(w.t)); /* MH oder FF: Übernachtung auswärts */
+    const dauer=hm2m(d.dur[0]),az=hm2m(d.dur[d.dur.length-1]);
+    const e={k:d.k,dt:d.dt,num:num?num.t:"",raw:txt};
+    if(/\bdispo/i.test(txt))e.t="D";
+    else if(/\bkrank|\bK\d{1,3}\b/i.test(txt))e.t="K";
+    else if(/\bU\d{1,3}\b|urlaub/i.test(txt))e.t="U";
+    else if(/\bR\d{1,3}\b|\bfrei\b/i.test(txt)&&!num)e.t="X";
+    if(!e.t&&(num||times.length)){
+      /* Beginn steht oben links, Ende unten rechts; mit der Dauer aus der Kopfzeile prüfen und ergänzen */
+      let s=times.length?times[0].v:null,en=times.length>1?times[times.length-1].v:null;
+      if(dauer!=null&&dauer>0){if(s!=null&&(en==null||((en-s+1440)%1440)!==dauer%1440))en=s+dauer;else if(s==null&&en!=null)s=en-dauer}
+      if(s!=null&&en!=null){e.t="W";e.s=m2hm(s);e.e=m2hm(en);e.b=(dauer!=null&&az!=null&&dauer>=az&&dauer-az<=120)?dauer-az:null;e.ok=dauer!=null&&times.length>=2&&((times[times.length-1].v-times[0].v+1440)%1440)===dauer%1440}
+      else e.t="?";
+      if(mh)e.mh=mh.rx<0.35?"vor":"nach";
+      if(d.bar)e.mh="nach";
+    }
+    if(e.t)out.push(e);
+  }
+  out.sort((a,b)=>a.k<b.k?-1:1);
+  /* MH: links im Kästchen = Schicht beginnt am Übernachtungsort, also endete die vorige Schicht auswärts */
+  out.forEach((e,i)=>{if(e.mh==="nach")e.away=true;if(e.mh==="vor"){for(let j=i-1;j>=0;j--){if(out[j].t==="W"){out[j].away=true;break}if(out[j].t!=="?")break}}});
+  return out;
+}
+function planRender(){
+  const P=plan,box=$("plRes");if(!P||!P.length){box.innerHTML=`<div class="empty">In dieser PDF hat Zulo keinen Einsatzplan erkannt.</div>`;$("plApply").hidden=true;return}
+  const wd=d=>d.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
+  const NM={W:"Arbeit",X:"Frei",U:"Urlaub",K:"Krank",D:"Dispo","?":"nicht erkannt"};
+  const n=P.filter(e=>e.t!=="?").length,bad=P.filter(e=>e.t==="?").length;
+  box.innerHTML=`<div class="slnote">${n} Tage erkannt${bad?`, ${bad} nicht sicher erkannt. Die trägst du bitte selbst ein`:""}. Bereitschaft kannst du danach im Kalender ändern.</div>`+
+    rows(P.map(e=>[`${wd(e.dt)}${e.num?" · Dienst "+esc(e.num):""}`,e.t==="W"?`${e.s} bis ${e.e}${e.away?" · Ü":""}`:NM[e.t]]))+
+    `<label class="fi" style="margin-top:8px"><input type="checkbox" id="plOver" checked><span><b>Vorhandene Einträge an diesen Tagen ersetzen</b></span></label>`;
+  $("plApply").hidden=!n;$("plApply").textContent=`${n} Tage übernehmen`;
+}
+function planApply(){
+  if(!plan)return;const over=$("plOver").checked;let n=0;
+  for(const e of plan){if(e.t==="?")continue;const ex=state.shifts[e.k];if(ex&&!ex.demo&&!over)continue;
+    let sh;if(e.t==="W"){const k=classify(e.s,e.e);if(!k)continue;let len=toMin(e.e)-toMin(e.s);if(len<=0)len+=1440;
+      sh={t:k,s:e.s,e:e.e,b:e.b!=null?e.b:(len>9*60+45?45:len>6*60+30?30:0)};if(e.away)sh.away=true;if(ex&&ex.nof)sh.nof=true}
+    else sh={t:e.t};
+    state.shifts[e.k]=sh;n++}
+  if(Object.values(state.shifts).some(s=>s.demo))for(const k in state.shifts)if(state.shifts[k].demo)delete state.shifts[k];
+  const f=plan.find(e=>e.t!=="?");save();closeSheet();if(f){cur={y:f.dt.getFullYear(),m:f.dt.getMonth()}}showView("cal");render();toast(`${n} Tage eingetragen`)}
+async function planRun(buf){
+  plan=null;$("plRes").innerHTML=`<div class="empty">Dienstplan wird auf deinem Gerät gelesen …</div>`;$("plApply").hidden=true;openLayer("planSheet");
+  try{plan=await planRead(buf,t=>{$("plRes").innerHTML=`<div class="empty">${t} …</div>`});planRender()}
+  catch(err){$("plRes").innerHTML=`<div class="empty">Der Dienstplan konnte nicht gelesen werden.<br><small>${esc(String(err&&err.message||err))}</small></div>`}}
+$("planPick").onclick=()=>$("planFile").click();
+$("planFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;if(f.size>15e6){toast("Die Datei ist zu groß");return}
+  try{planRun(new Uint8Array(await f.arrayBuffer()))}catch(err){toast("Datei konnte nicht geöffnet werden")}};
+$("plCancel").onclick=closeSheet;$("plApply").onclick=planApply;
+
 /* ---------- Lohnabrechnung per Foto (Texterkennung nur auf dem Gerät) ---------- */
 let ocrW=null,ocrSeq=0;const ocrWait={};
 function ocrSimd(){try{return WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11]))}catch(e){return false}}
