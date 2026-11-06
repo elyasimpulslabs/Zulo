@@ -123,6 +123,8 @@ textarea{width:100%;min-height:90px;font:500 16px ui-monospace,monospace;resize:
 .tarifbox .stand{font-size:12px}
 .tarifbox a{color:var(--accent);font-weight:600}
 .mod{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px}
+.card:not(.showadv) .adv{display:none!important}
+.morebtn{display:block;margin:10px 0 4px}
 .linkbtn{border:0;background:none;color:var(--accent);font:700 13px var(--body);cursor:pointer;padding:0}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0}
 .scrim{position:fixed;inset:0;background:rgb(0 0 0/.55);z-index:20}
@@ -403,18 +405,32 @@ s.addEventListener("click",function(){if(started&&Date.now()-startedAt>700)hide(
       <div id="pmMonth">
         <label class="f" for="monthly"><span>Monatsgehalt brutto<small>Tabellenentgelt ohne Zuschläge</small></span><span class="inp"><input id="monthly" type="text" data-num="1" step="0.01" min="0" inputmode="decimal"><span class="unit">€</span></span></label>
         <label class="f" for="hours"><span>Wochenstunden<small>Laut Vertrag, bei Teilzeit deine Stunden</small></span><span class="inp"><input id="hours" type="text" data-num="1" step="0.5" min="1" inputmode="decimal"><span class="unit">Std</span></span></label>
-        <label class="f" for="daysIn"><span>Arbeitstage pro Woche<small>Für Urlaub und Krankheit: so viele Stunden zählt ein freier Tag</small></span><span class="inp"><input id="daysIn" type="text" data-num="1" step="0.5" min="1" inputmode="decimal" placeholder="5"><span class="unit">Tage</span></span></label>
-        <label class="f" for="zuRateIn"><span>Stundensatz für Zuschläge<small id="zuRateHint"></small></span><span class="inp"><input id="zuRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="automatisch"><span class="unit">€</span></span></label>
-        <label class="f" for="absRateIn"><span>Zulagen bei Urlaub und Krankheit<small>Durchschnitt je Stunde, den du an Urlaubs und Krankheitstagen weiter bekommst. Steht auf der Abrechnung als Urlaubsentgelt oder Entgeltfortzahlung.</small></span><span class="inp"><input id="absRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="0"><span class="unit">€</span></span></label>
+        <label class="f adv" for="daysIn"><span>Arbeitstage pro Woche<small>Für Urlaub und Krankheit: so viele Stunden zählt ein freier Tag</small></span><span class="inp"><input id="daysIn" type="text" data-num="1" step="0.5" min="1" inputmode="decimal" placeholder="5"><span class="unit">Tage</span></span></label>
+        <label class="f adv" for="zuRateIn"><span>Stundensatz für Zuschläge<small id="zuRateHint"></small></span><span class="inp"><input id="zuRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="automatisch"><span class="unit">€</span></span></label>
+        <label class="f adv" for="absRateIn"><span>Zulagen bei Urlaub und Krankheit<small>Durchschnitt je Stunde, den du an Urlaubs und Krankheitstagen weiter bekommst. Steht auf der Abrechnung als Urlaubsentgelt oder Entgeltfortzahlung.</small></span><span class="inp"><input id="absRateIn" type="text" data-num="1" step="0.01" min="0" inputmode="decimal" placeholder="0"><span class="unit">€</span></span></label>
       </div>
       <label class="f" for="wage" id="pmHour"><span>Stundenlohn<small>Brutto pro Stunde</small></span><span class="inp"><input id="wage" type="text" data-num="1" step="0.01" min="0" inputmode="decimal"><span class="unit">€</span></span></label>
-      <label class="f" for="zugSel" id="zugRow"><span>EVG-ZUG<small>Zusatzgeld im Dezember. Schichtarbeit: 2026 2,6 %, ab 2027 4,6 % vom Jahrestabellenentgelt</small></span><span class="inp"><select id="zugSel"><option value="s">Schichtarbeit (ZUG-S)</option><option value="s2">Schicht, 2 freie Tage gewählt</option><option value="n">Ohne Schichtarbeit</option><option value="off">Nicht einrechnen</option></select></span></label>
-      <label class="f" for="payDayIn"><span>Zahltag<small>Tag im Monat, an dem das Geld kommt. Bei der Bahn der 25.</small></span><span class="inp"><input id="payDayIn" type="text" data-num="1" step="1" min="1" inputmode="numeric" placeholder="25"><span class="unit">.</span></span></label>
+      <label class="f adv" for="zugSel" id="zugRow"><span>EVG-ZUG<small>Zusatzgeld im Dezember. Schichtarbeit: 2026 2,6 %, ab 2027 4,6 % vom Jahrestabellenentgelt</small></span><span class="inp"><select id="zugSel"><option value="s">Schichtarbeit (ZUG-S)</option><option value="s2">Schicht, 2 freie Tage gewählt</option><option value="n">Ohne Schichtarbeit</option><option value="off">Nicht einrechnen</option></select></span></label>
+      <label class="f adv" for="payDayIn"><span>Zahltag<small>Tag im Monat, an dem das Geld kommt. Bei der Bahn der 25.</small></span><span class="inp"><input id="payDayIn" type="text" data-num="1" step="1" min="1" inputmode="numeric" placeholder="25"><span class="unit">.</span></span></label>
       <label class="f" for="land"><span>Bundesland<small>Für die Feiertage am Arbeitsort</small></span><span class="inp"><select id="land"></select></span></label>
     </div>
     <div class="sec">Dein Tarifprofil</div>
     <div class="card" id="profCard"></div>
     <p class="note" style="margin-top:-6px;margin-bottom:8px" id="profNote"></p>
+    <div class="sec">Netto</div>
+    <div class="card">
+      <label class="f" for="tStkl"><span>Steuerklasse<small>Steht auf der Abrechnung</small></span><span class="inp"><select id="tStkl"><option value="1">I</option><option value="2">II</option><option value="3">III</option><option value="4">IV</option><option value="5">V</option><option value="6">VI</option></select></span></label>
+      <label class="f" for="tKinder"><span>Kinderfreibeträge<small>Laut Abrechnung, z. B. 0,5 oder 1,0</small></span><span class="inp"><input id="tKinder" type="text" data-num="1" min="0" step="0.5" inputmode="decimal"></span></label>
+      <label class="f" for="tKirche"><span>Kirchensteuer<small>8 % in BW und Bayern, sonst 9 %</small></span><span class="inp"><select id="tKirche"><option value="0">nein</option><option value="1">ja</option></select></span></label>
+      <label class="f" for="tKvz"><span>Zusatzbeitrag Krankenkasse<small>Steht als Krankenversicherung auf der Abrechnung. Durchschnitt 2026: 2,9 %, günstige Kassen ab rund 2,5 %</small></span><span class="inp"><input id="tKvz" type="text" data-num="1" min="0" step="0.01" inputmode="decimal"><span class="unit">%</span></span></label>
+      <label class="f adv" for="tPvK"><span>Kinder unter 25<small>Senkt den Pflegebeitrag ab dem 2. Kind</small></span><span class="inp"><input id="tPvK" type="text" data-num="1" min="0" step="1" inputmode="numeric"></span></label>
+      <label class="f adv" for="tFb"><span>Freibetrag Lohnsteuer im Monat<small>Steht auf der Abrechnung unter Freibetrag, wenn das Finanzamt einen eingetragen hat, z. B. den Pauschbetrag bei Behinderung</small></span><span class="inp"><input id="tFb" type="text" data-num="1" min="0" step="0.01" inputmode="decimal" placeholder="0"><span class="unit">€</span></span></label>
+      <label class="f adv" for="tGdb"><span>Grad der Behinderung<small id="tGdbHint">Für den Pauschbetrag bei der Steuer</small></span><span class="inp"><select id="tGdb"><option value="">keiner</option><option value="20">GdB 20</option><option value="30">GdB 30</option><option value="40">GdB 40</option><option value="50">GdB 50</option><option value="60">GdB 60</option><option value="70">GdB 70</option><option value="80">GdB 80</option><option value="90">GdB 90</option><option value="100">GdB 100</option><option value="H">Merkzeichen H, Bl, TBl oder Pflegegrad 4/5</option></select></span></label>
+      <div class="pinfo adv" id="tGdbInfo" hidden style="padding:0 0 10px"></div>
+      <label class="f adv" for="tKl"><span>Kinderlos und mindestens 23<small>Zuschlag zur Pflegeversicherung</small></span><span class="inp"><select id="tKl"><option value="1">ja</option><option value="0">nein</option></select></span></label>
+    </div>
+    <button type="button" class="btn sec2 wide" id="moreSetBtn" style="width:100%;margin:6px 0 14px">Weitere Einstellungen anzeigen</button>
+    <div id="moreSet" hidden>
     <div class="sec">Sonderzahlungen im Jahr</div>
     <div class="card"><div id="xtraList"></div>
       <div class="btnrow"><button type="button" class="btn sec2 small" id="addXtra">+ Sonderzahlung</button><button type="button" class="btn sec2 small" id="tplMetall">Vorlage IG Metall</button></div>
@@ -425,24 +441,10 @@ s.addEventListener("click",function(){if(started&&Date.now()-startedAt>700)hide(
       <div class="btnrow"><button type="button" class="btn sec2 small" id="addItem">+ Posten hinzufügen</button></div>
     </div>
     <p class="note" style="margin-top:-6px;margin-bottom:8px">Zum Beispiel Firmenrad, PC Leasing, vermögenswirksame Leistungen oder Kantine. Betrag pro Monat, so wie er auf der Abrechnung steht.</p>
-    <div class="sec">Netto</div>
-    <div class="card">
-      <label class="f" for="tStkl"><span>Steuerklasse<small>Steht auf der Abrechnung</small></span><span class="inp"><select id="tStkl"><option value="1">I</option><option value="2">II</option><option value="3">III</option><option value="4">IV</option><option value="5">V</option><option value="6">VI</option></select></span></label>
-      <label class="f" for="tKinder"><span>Kinderfreibeträge<small>Laut Abrechnung, z. B. 0,5 oder 1,0</small></span><span class="inp"><input id="tKinder" type="text" data-num="1" min="0" step="0.5" inputmode="decimal"></span></label>
-      <label class="f" for="tKirche"><span>Kirchensteuer<small>8 % in BW und Bayern, sonst 9 %</small></span><span class="inp"><select id="tKirche"><option value="0">nein</option><option value="1">ja</option></select></span></label>
-      <label class="f" for="tKvz"><span>Zusatzbeitrag Krankenkasse<small>Steht als Krankenversicherung auf der Abrechnung. Durchschnitt 2026: 2,9 %, günstige Kassen ab rund 2,5 %</small></span><span class="inp"><input id="tKvz" type="text" data-num="1" min="0" step="0.01" inputmode="decimal"><span class="unit">%</span></span></label>
-      <label class="f" for="tPvK"><span>Kinder unter 25<small>Senkt den Pflegebeitrag ab dem 2. Kind</small></span><span class="inp"><input id="tPvK" type="text" data-num="1" min="0" step="1" inputmode="numeric"></span></label>
-      <label class="f" for="tFb"><span>Freibetrag Lohnsteuer im Monat<small>Steht auf der Abrechnung unter Freibetrag, wenn das Finanzamt einen eingetragen hat, z. B. den Pauschbetrag bei Behinderung</small></span><span class="inp"><input id="tFb" type="text" data-num="1" min="0" step="0.01" inputmode="decimal" placeholder="0"><span class="unit">€</span></span></label>
-      <label class="f" for="tGdb"><span>Grad der Behinderung<small id="tGdbHint">Für den Pauschbetrag bei der Steuer</small></span><span class="inp"><select id="tGdb"><option value="">keiner</option><option value="20">GdB 20</option><option value="30">GdB 30</option><option value="40">GdB 40</option><option value="50">GdB 50</option><option value="60">GdB 60</option><option value="70">GdB 70</option><option value="80">GdB 80</option><option value="90">GdB 90</option><option value="100">GdB 100</option><option value="H">Merkzeichen H, Bl, TBl oder Pflegegrad 4/5</option></select></span></label>
-      <div class="pinfo" id="tGdbInfo" hidden style="padding:0 0 10px"></div>
-      <label class="f" for="tKl"><span>Kinderlos und mindestens 23<small>Zuschlag zur Pflegeversicherung</small></span><span class="inp"><select id="tKl"><option value="1">ja</option><option value="0">nein</option></select></span></label>
-    </div>
     <div class="sec">Zuschläge <span id="modTag"></span></div>
     <div class="card" id="rules"></div>
     <div class="sec">Schichtvorlagen</div>
     <div class="card" id="tpl"></div>
-    <div class="sec">App</div>
-    <div class="card">
     </div>
     <div class="sec">Datensicherung</div>
     <div class="card">
@@ -1280,6 +1282,11 @@ $("clearDemo").onclick=()=>{for(const k in state.shifts)if(state.shifts[k].demo)
 
 /* ---------- Einstellungen ---------- */
 const landOpts=sel=>Object.entries(LAENDER).map(([k,n])=>`<option value="${k}"${k===sel?" selected":""}>${n}</option>`).join("");
+/* Seltene Felder ausblenden: je Karte ein Knopf "Mehr anzeigen" */
+function addMore(){document.querySelectorAll("#v-set .card").forEach(cd=>{if(!cd.querySelector(".adv")){const o=cd.querySelector(":scope>.morebtn");if(o)o.remove();return}
+  let b=cd.querySelector(":scope>.morebtn");if(!b){b=document.createElement("button");b.type="button";b.className="linkbtn morebtn";cd.appendChild(b);b.onclick=()=>{cd.classList.toggle("showadv");b.textContent=cd.classList.contains("showadv")?"Weniger anzeigen":"Mehr anzeigen"}}
+  else cd.appendChild(b);b.textContent=cd.classList.contains("showadv")?"Weniger anzeigen":"Mehr anzeigen"})}
+$("moreSetBtn").onclick=()=>{const m=$("moreSet");m.hidden=!m.hidden;$("moreSetBtn").textContent=m.hidden?"Weitere Einstellungen anzeigen":"Weitere Einstellungen ausblenden"};
 function renderSettings(){
   const c=cfg(),P=PRESETS[c.tarif];
   $("sTarif").innerHTML=Object.entries(PRESETS).map(([k,p])=>`<option value="${k}"${k===c.tarif?" selected":""}>${p.name}</option>`).join("");
@@ -1292,7 +1299,7 @@ function renderSettings(){
   {const t=taxCfg(c);$("tStkl").value=t.stkl;$("tKinder").value=t.kinder;$("tKirche").value=t.kirche?"1":"0";$("tKvz").value=t.kvz;$("tPvK").value=t.pvKinder;$("tKl").value=t.kinderlos23?"1":"0";$("tFb").value=t.fb||"";$("tGdb").value=t.gdb||"";gdbInfo();}
   $("modTag").innerHTML=c.modified?`<span class="mod">angepasst</span> <button class="linkbtn" id="restore">Vorlage wiederherstellen</button>`:"";
   if(c.modified)$("restore").onclick=()=>{c.rules=clone(PRESETS[c.tarif].rules);c.modified=false;save();renderSettings();render();toast("Vorlage wiederhergestellt")};
-  renderRules();renderTpl();renderItems();renderProf();renderXtra();enhanceAll();
+  renderRules();renderTpl();renderItems();renderProf();renderXtra();enhanceAll();addMore();
 }
 function unitSel(id,u){return `<select id="${id}" aria-label="Einheit"><option value="pct"${u==="pct"?" selected":""}>%</option><option value="eur"${u==="eur"?" selected":""}>€/Std</option></select>`}
 function renderRules(){
@@ -1367,6 +1374,7 @@ const PROF_FIELDS={
 ["dbgdl","tvoed","tvl","chemie","gesetz","eigen"].forEach(t=>PROF_FIELDS[t]&&PROF_FIELDS[t].push(
   ["abz","Beruflich auswärts unterwegs","sel",opt([["0","Nein"],["st","Ja, Verpflegungspauschale für die Steuer"]]),"Ab 8 Stunden weg von zu Hause 14 €, für 24 Stunden 28 €. Zulo zählt die Tage für deine Steuererklärung"],
   ["weg","Weg zur Arbeit je Richtung","num",null,"Minuten von der Wohnung bis zum Arbeitsbeginn"]));
+const PROF_ESS={dbevg:["fgr","eg","stufe","beginn"],dbgdl:["eg","stufe","beginn"],tvoed:["eg","stufe","seit"],tvl:["eg","stufe","seit"],chemie:["eg","seit"],gesetz:["eg"],eigen:["eg","stufe"]};
 function profShow(k,v){
   if(v==null||v==="")return "";
   if(k==="modell")return MODELL[v]||v;if(k==="wahl")return WAHL[v]||v;if(k==="beginn"||k==="seit")return deDate(v);
@@ -1383,9 +1391,10 @@ function renderProf(){
     const ctl=ty==="sel"?`<select id="pf_${k}">${o.map(([a,b])=>`<option value="${esc(a)}"${String(v)===String(a)?" selected":""}>${esc(b)}</option>`).join("")}</select>`:
       ty==="date"?`<input id="pf_${k}" type="date" value="${esc(v)}">`:
       `<input id="pf_${k}" type="text" ${ty==="num"?'data-num="1" inputmode="decimal"':'autocapitalize="characters"'} value="${esc(String(v))}">${k==="jsz"||k==="jl"?'<span class="unit">%</span>':k==="ug"?'<span class="unit">€</span>':k==="az"?'<span class="unit">Std</span>':""}`;
-    return `<label class="f" for="pf_${k}"><span>${l}${hint?`<small>${hint}</small>`:""}</span><span class="inp">${ctl}</span></label>`}).join("")+`<div class="pinfo" id="profInfo"></div>`;
+    const ess=PROF_ESS[c.tarif]||F.slice(0,3).map(x=>x[0]);
+    return `<label class="f${ess.includes(k)?"":" adv"}" for="pf_${k}"><span>${l}${hint?`<small>${hint}</small>`:""}</span><span class="inp">${ctl}</span></label>`}).join("")+`<div class="pinfo" id="profInfo"></div>`;
   F.forEach(([k,,ty])=>{const el=$(`pf_${k}`);el.onchange=()=>{let v=el.value;if(ty==="num")v=v===""?"":(N(v)||0);P[k]=v;save();renderProf();render()}});
-  $("profInfo").innerHTML=profInfo(c);
+  $("profInfo").innerHTML=profInfo(c);addMore();
   const notes={dbevg:"Quellen: FGr 1 bis 6-TV, ZusatzTV FGr 5-TV und BasisTV AGV MOVE EVG, Stand ÄTV 2-2026, EVG Zulagentabelle ab 01.07.2026. Tabellen bis August 2027 hinterlegt. Die Tabellen der FGr 6 stammen aus einem eingescannten Dokument, bitte mit deiner Abrechnung vergleichen.",
     dbgdl:"Quelle: GDL Tarifeinigung mit der DB (Wahlmodell bis 40 Stunden, je Stunde 2,7 % mehr).",
     tvoed:"Quelle: TVöD VKA, Tabelle ab 01.05.2026 und Stufenlaufzeiten laut kommunalforum.de. Im TVöD Bund gelten eigene Werte.",
