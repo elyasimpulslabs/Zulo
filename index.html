@@ -480,8 +480,6 @@ s.addEventListener("click",function(){if(started&&Date.now()-startedAt>700)hide(
       <label for="tEnd">Ende<input id="tEnd" type="time"></label>
       <label for="tBreak">Pause min<input id="tBreak" type="text" data-num="1" min="0" step="5" inputmode="numeric" enterkeyhint="done"></label>
     </div>
-    <label class="repT" for="tNoF" id="tNoFL" hidden><input type="checkbox" id="tNoF"> Ohne Zugfahrt, z. B. Bereitschaft in der Dienststelle</label>
-    <label class="repT" for="tAway" id="tAwayL" hidden><input type="checkbox" id="tAway"> Danach auswärts übernachtet</label>
     <p class="err" id="shErr" hidden></p>
     <div class="preview" id="pv"></div>
     <div class="rep" id="rep">
@@ -780,6 +778,10 @@ const TYPES={
   K:{name:"Krank",color:"var(--f-sick)",work:false},
   D:{name:"Dispo",color:"var(--f-dispo)",work:false}
 };
+/* Arbeit mit Uhrzeiten in drei Arten: normal, Bereitschaft (ohne Zugfahrt) und mit Übernachtung auswärts.
+   Gespeichert wird weiter als Früh, Spät oder Nacht, dazu nof (Bereitschaft) oder away (Übernachtung). */
+const isW=t=>t==="W"||t==="B"||t==="UE";
+const WMODE={W:["Arbeit","var(--accent)"],B:["Bereitschaft","var(--f-off)"],UE:["Übernachtung","var(--f-night)"]};
 const TPL={F:{s:"05:00",e:"13:30",b:30},S:{s:"13:00",e:"21:30",b:30},N:{s:"21:00",e:"05:30",b:30}};
 const KEY="zulo.v2";
 const clone=o=>JSON.parse(JSON.stringify(o));
@@ -1026,12 +1028,12 @@ function render(){
     if(sh&&TYPES[sh.t]){
       const r=calc(k,shiftFor(sh),calcCfg());
       if(TYPES[sh.t].work)html+=`<span class="h">${(r.paid/60).toLocaleString("de-DE",{maximumFractionDigits:1})}h</span>`;
-      html+=`<span class="chip" style="background:${TYPES[sh.t].color}">${sh.t}</span>`;
+      html+=`<span class="chip" style="background:${sh.nof?"var(--f-off)":TYPES[sh.t].color}">${sh.nof?"B":sh.away?"Ü":sh.t}</span>`;
       if(r.zu>0.005)html+=`<span class="dot"></span>`;
     }
     b.innerHTML=html;b.onclick=()=>openSheet(k);g.appendChild(b);
   }
-  $("legend").innerHTML=Object.entries(TYPES).map(([k,t])=>`<span><i style="background:${t.color}"></i>${k} ${t.name}</span>`).join("");
+  $("legend").innerHTML=Object.entries(TYPES).map(([k,t])=>`<span><i style="background:${t.color}"></i>${k} ${t.name}</span>`).join("")+`<span><i style="background:var(--f-off)"></i>B Bereitschaft</span><span><i style="background:var(--f-night)"></i>Ü Übernachtung</span>`;
   const hols=Object.entries(holidays(y,c.land)).filter(([k])=>k.startsWith(`${y}-${pad(m+1)}`)).map(([k,n])=>`${+k.slice(8)}. ${n}`);
   $("calNote").textContent=(hols.length?`Feiertage in ${LAENDER[c.land]}: ${hols.join(", ")}. `:"")+"Orange Zahl = Sonntag oder Feiertag, Punkt = Schicht mit Zuschlag.";
   renderSummary(T);
@@ -1049,7 +1051,7 @@ function renderAbz(T){
   if(A.kind!=="st")S.push([`Verpflegungspauschale vom Arbeitgeber (${A.n8+A.n14+A.n24} Tage)`,eur(A.tarif),"sub"]);
   if(A.fremd)S.push([`Prämie Fremdsprache (${A.fremd} Schichten)`,eur(A.fremdEur)]);
   S.push(["Steuerlich erlaubt (14 € / 28 € je Tag)",eur(A.estg)],["Für die Steuererklärung (Werbungskosten)",eur(Math.max(0,A.estg-(A.kind==="st"?0:A.tarif))),"good"]);
-  $("sAbz").innerHTML=rows(L)+rows(S)+`<p class="note" style="margin:6px 0 4px">Uhrzeiten ab und an Wohnung mit ${A.weg} Minuten Weg vor und nach der Schicht geschätzt, änderbar im Tarifprofil. Übernachtest du auswärts, hake das in der Schicht an. Schichten ohne Zugfahrt, etwa Bereitschaft in der Dienststelle, zählen nicht. ${A.kind==="st"?"":"Die Pauschale kommt mit der Nachberechnung, sobald dein Zettel abgerechnet ist. "}Ohne Gewähr, maßgeblich ist der abgerechnete Zettel.</p>`;
+  $("sAbz").innerHTML=rows(L)+rows(S)+`<p class="note" style="margin:6px 0 4px">Uhrzeiten ab und an Wohnung mit ${A.weg} Minuten Weg vor und nach der Schicht geschätzt, änderbar im Tarifprofil. Übernachtest du auswärts, wähle beim Eintragen Übernachtung. Bereitschaft in der Dienststelle zählt nicht mit. ${A.kind==="st"?"":"Die Pauschale kommt mit der Nachberechnung, sobald dein Zettel abgerechnet ist. "}Ohne Gewähr, maßgeblich ist der abgerechnete Zettel.</p>`;
 }
 function renderSummary(T){
   renderAbz(T);
@@ -1100,17 +1102,17 @@ function openSheet(k){
   const [y,m,d]=k.split("-").map(Number);const dt=new Date(y,m-1,d);
   const ex=state.shifts[k];
   editing={k,sh:ex?{...ex}:{t:"W",s:"",e:"",b:0},autoB:!ex};
-  if(TYPES[editing.sh.t]?.work)editing.sh.t="W";
+  if(TYPES[editing.sh.t]?.work)editing.sh.t=editing.sh.nof?"B":editing.sh.away?"UE":"W";
   $("shTitle").textContent=dt.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
   $("shMeta").textContent=holName(dt,cfg().land)||(ex?"Schicht bearbeiten":"Neue Schicht");
   $("bDel").hidden=!ex;editing.hadEx=!!ex;
-  const opts=[["W","Arbeit","var(--accent)"],...Object.entries(TYPES).filter(([c,t])=>!t.work).map(([c,t])=>[c,t.name,t.color])];
+  const opts=[...Object.entries(WMODE).map(([c,[n,col]])=>[c,n,col]),...Object.entries(TYPES).filter(([c,t])=>!t.work).map(([c,t])=>[c,t.name,t.color])];
   $("types").innerHTML=opts.map(([c,n,col])=>`<button type="button" data-t="${c}" aria-pressed="${editing.sh.t===c}"><i style="background:${col}"></i>${n}</button>`).join("");
   $("types").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    const c=b.dataset.t;editing.sh=c==="W"?{t:"W",s:editing.sh.s||"",e:editing.sh.e||"",b:editing.sh.b||0}:{t:c};fillTimes();if(editing.rep){repWdDefault();repDraw()}
+    const c=b.dataset.t;editing.sh=isW(c)?{t:c,s:editing.sh.s||"",e:editing.sh.e||"",b:editing.sh.b||0}:{t:c};fillTimes();if(editing.rep){repWdDefault();repDraw()}
     $("types").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
   $("quick").innerHTML=["F","S","N"].map(c=>`<button type="button" data-q="${c}">${TYPES[c].name} ${state.tpl[c].s} bis ${state.tpl[c].e}</button>`).join("");
-  $("quick").querySelectorAll("button").forEach(b=>b.onclick=()=>{const t=state.tpl[b.dataset.q];editing.sh={t:"W",s:t.s,e:t.e,b:t.b};editing.autoB=false;fillTimes()});
+  $("quick").querySelectorAll("button").forEach(b=>b.onclick=()=>{const t=state.tpl[b.dataset.q];editing.sh={t:isW(editing.sh.t)?editing.sh.t:"W",s:t.s,e:t.e,b:t.b};editing.autoB=false;fillTimes()});
   fillTimes();repInit();openLayer("sheet");
   if(!ex)setTimeout(()=>{try{$("tStart").focus()}catch(e){}},250);
 }
@@ -1151,20 +1153,16 @@ function classify(s,e){
 }
 const SHIFTNAME={F:"Frühschicht",S:"Spätschicht",N:"Nachtschicht"};
 function fillTimes(){
-  const sh=editing.sh,w=sh.t==="W";
+  const sh=editing.sh,w=isW(sh.t);
   $("times").hidden=!w;$("quick").hidden=!w;
   if(w){$("tStart").value=sh.s||"";$("tEnd").value=sh.e||"";$("tBreak").value=sh.b??0}
-  $("tAwayL").hidden=!w||!abzKind(cfg())||!!sh.nof;$("tAway").checked=!!sh.away;
-  $("tNoFL").hidden=!w||!(cfg().tarif==="dbevg"||abzKind(cfg()));$("tNoF").checked=!!sh.nof;
   updPreview();
 }
-function readTimes(){if(editing.sh.t==="W"){editing.sh.s=normTime($("tStart").value)||"";editing.sh.e=normTime($("tEnd").value)||"";editing.sh.b=Math.max(0,N($("tBreak").value)||0);if($("tAway").checked&&!$("tNoF").checked)editing.sh.away=true;else delete editing.sh.away;if($("tNoF").checked)editing.sh.nof=true;else delete editing.sh.nof}}
+function readTimes(){if(isW(editing.sh.t)){editing.sh.s=normTime($("tStart").value)||"";editing.sh.e=normTime($("tEnd").value)||"";editing.sh.b=Math.max(0,N($("tBreak").value)||0)}}
 $("tBreak").addEventListener("input",()=>{editing&&(editing.autoB=false)});
-$("tAway").addEventListener("change",()=>{editing&&updPreview()});
-$("tNoF").addEventListener("change",()=>{if(!editing)return;readTimes();$("tAwayL").hidden=!abzKind(cfg())||$("tNoF").checked;updPreview()});
 function updPreview(){
   readTimes();
-  const w=editing.sh.t==="W";
+  const w=isW(editing.sh.t);
   if(!w){const t=TYPES[editing.sh.t];$("shErr").hidden=true;$("bSave").disabled=false;$("bSaveTop").disabled=false;$("pv").innerHTML=rows([[t.name,"kein Verdienst berechnet"]]);return}
   const raw=[$("tStart").value,$("tEnd").value];
   if(!raw[0]||!raw[1]){$("shErr").hidden=true;$("bSave").disabled=true;$("bSaveTop").disabled=true;$("pv").innerHTML=rows([["Tipp Beginn und Ende ein","Zulo erkennt die Schicht selbst"]]);return}
@@ -1201,7 +1199,7 @@ window.addEventListener("popstate",()=>{
   if(curView!=="cal"){viewPushed=false;showView("cal",true)}});
 $("scrim").onclick=closeSheet;$("bCancel").onclick=closeSheet;
 $("bSave").onclick=()=>{readTimes();const sh={...editing.sh};delete sh.demo;delete sh.work;
-  if(sh.t==="W"){const k=classify(sh.s,sh.e);if(!k)return;sh.t=k}
+  if(isW(sh.t)){const mode=sh.t,k=classify(sh.s,sh.e);if(!k)return;sh.t=k;delete sh.nof;delete sh.away;if(mode==="B")sh.nof=true;if(mode==="UE")sh.away=true}
   if(TYPES[sh.t].work&&validate(shiftFor(sh)))return;
   const days=editing.rep?repDays():[editing.k];days.forEach(k=>{state.shifts[k]={...sh}});
   save();closeSheet();render();toast(days.length>1?`Für ${days.length} Tage gespeichert`:"Gespeichert")};
