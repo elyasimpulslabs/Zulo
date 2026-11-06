@@ -1156,14 +1156,14 @@ function renderSummary(T){
 }
 
 /* ---------- Schicht bearbeiten ---------- */
-function openSheet(k){
+function openSheet(k,noFocus){
   const [y,m,d]=k.split("-").map(Number);const dt=new Date(y,m-1,d);
   const ex=state.shifts[k];
   editing={k,sh:ex?{...ex}:{t:"W",s:"",e:"",b:0},autoB:!ex};
   if(TYPES[editing.sh.t]?.work)editing.sh.t=editing.sh.nof?"B":editing.sh.away?"UE":"W";
   $("shTitle").textContent=dt.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
-  $("shMeta").textContent=holName(dt,cfg().land)||(ex?"Schicht bearbeiten":"Neue Schicht");
-  $("bDel").hidden=!ex;editing.hadEx=!!ex;
+  $("shMeta").textContent=(holName(dt,cfg().land)||(ex?"Schicht bearbeiten":"Neue Schicht"))+" · wischen für nächsten Tag";
+  $("bDel").hidden=!ex;editing.hadEx=!!ex;editing.orig=ex?JSON.stringify((({demo,...r})=>r)(ex)):"";
   const opts=[...Object.entries(WMODE).map(([c,[n,col]])=>[c,n,col]),...Object.entries(TYPES).filter(([c,t])=>!t.work).map(([c,t])=>[c,t.name,t.color])];
   $("types").innerHTML=opts.map(([c,n,col])=>`<button type="button" data-t="${c}" aria-pressed="${editing.sh.t===c}"><i style="background:${col}"></i>${n}</button>`).join("");
   $("types").querySelectorAll("button").forEach(b=>b.onclick=()=>{
@@ -1172,7 +1172,7 @@ function openSheet(k){
   $("quick").innerHTML=["F","S","N"].map(c=>`<button type="button" data-q="${c}">${TYPES[c].name} ${state.tpl[c].s} bis ${state.tpl[c].e}</button>`).join("");
   $("quick").querySelectorAll("button").forEach(b=>b.onclick=()=>{const t=state.tpl[b.dataset.q];editing.sh={t:isW(editing.sh.t)?editing.sh.t:"W",s:t.s,e:t.e,b:t.b};editing.autoB=false;fillTimes()});
   fillTimes();repInit();openLayer("sheet");
-  if(!ex)setTimeout(()=>{try{$("tStart").focus()}catch(e){}},250);
+  if(!ex&&!noFocus)setTimeout(()=>{try{$("tStart").focus()}catch(e){}},250);
 }
 /* Mehrere Tage durch Ziehen: Finger kurz auf einem Tag halten und über die Tage ziehen (mit der Maus einfach ziehen).
    Danach öffnet sich das Eintragen für genau diese Tage. */
@@ -1276,11 +1276,27 @@ window.addEventListener("popstate",()=>{
   if(layerPushed){layerPushed=false;if(state.cfg)hideLayers();return}
   if(curView!=="cal"){viewPushed=false;showView("cal",true)}});
 $("scrim").onclick=closeSheet;$("bCancel").onclick=closeSheet;
-$("bSave").onclick=()=>{readTimes();const sh={...editing.sh};delete sh.demo;delete sh.work;
-  if(isW(sh.t)){const mode=sh.t,k=classify(sh.s,sh.e);if(!k)return;sh.t=k;delete sh.nof;delete sh.away;if(mode==="B")sh.nof=true;if(mode==="UE")sh.away=true}
-  if(TYPES[sh.t].work&&validate(shiftFor(sh)))return;
-  const days=editing.rep?repDays():[editing.k];days.forEach(k=>{state.shifts[k]={...sh}});
-  save();closeSheet();render();toast(days.length>1?`Für ${days.length} Tage gespeichert`:"Gespeichert")};
+/* Speichert die offene Schicht. quiet: beim Wischen zum nächsten Tag, leere neue Tage werden übersprungen.
+   Rückgabe: false bei Fehler, sonst Anzahl gespeicherter Tage (0 = nichts geändert) */
+function sheetStore(quiet){readTimes();const sh={...editing.sh};delete sh.demo;delete sh.work;
+  if(quiet&&isW(sh.t)&&!sh.s&&!sh.e&&!editing.hadEx)return 0;
+  if(isW(sh.t)){const mode=sh.t,k=classify(sh.s,sh.e);if(!k)return false;sh.t=k;delete sh.nof;delete sh.away;if(mode==="B")sh.nof=true;if(mode==="UE")sh.away=true}
+  if(TYPES[sh.t].work&&validate(shiftFor(sh)))return false;
+  if(quiet&&!(editing.rep&&editing.rep.on)&&JSON.stringify(sh)===editing.orig)return 0;
+  const days=editing.rep?repDays():[editing.k];days.forEach(k=>{state.shifts[k]={...sh}});save();return days.length}
+$("bSave").onclick=()=>{const n=sheetStore(false);if(n===false)return;closeSheet();render();toast(n>1?`Für ${n} Tage gespeichert`:"Gespeichert")};
+/* Im Fenster nach links oder rechts wischen: nächster oder voriger Tag, Änderungen werden vorher gespeichert */
+function sheetStep(dir){if(!editing||(editing.rep&&editing.rep.on))return;const n=sheetStore(true);if(n===false)return;
+  const [y,m,d]=editing.k.split("-").map(Number),nd=new Date(y,m-1,d+dir),nk=keyOf(nd);
+  if(nd.getFullYear()!==cur.y||nd.getMonth()!==cur.m)cur={y:nd.getFullYear(),m:nd.getMonth()};render();
+  const inn=$("sheet").querySelector(".in");inn.style.transition="none";inn.style.transform=`translateX(${dir*40}px)`;inn.style.opacity="0.4";
+  openSheet(nk,true);requestAnimationFrame(()=>{inn.style.transition="transform .18s ease,opacity .18s ease";inn.style.transform="";inn.style.opacity=""});
+  if(n)toast("Gespeichert")}
+(function(){const sh=$("sheet");let x0=0,y0=0,t0=0,ok=false;
+  sh.addEventListener("touchstart",e=>{if(e.touches.length!==1){ok=false;return}const t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now();ok=!e.target.closest("#repBox,.repT")},{passive:true});
+  sh.addEventListener("touchend",e=>{if(!ok||!editing)return;ok=false;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;
+    if(Date.now()-t0<700&&Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*2)sheetStep(dx<0?1:-1)},{passive:true});
+  document.addEventListener("keydown",e=>{if(!editing||$("sheet").hidden||e.target.closest("input,textarea,select"))return;if(e.key==="ArrowRight")sheetStep(1);if(e.key==="ArrowLeft")sheetStep(-1)});})();
 $("bDel").onclick=()=>{const days=editing.rep?repDays():[editing.k];days.forEach(k=>{delete state.shifts[k]});save();closeSheet();render();toast(days.length>1?`${days.length} Tage gelöscht`:"Gelöscht")};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(editing||newsOpen))closeSheet()});
 function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>el.hidden=true,1800)}
