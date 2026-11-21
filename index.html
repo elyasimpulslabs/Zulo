@@ -913,7 +913,11 @@ function oneOffs(c,y,m){
   const z=zugFor(c,y,m);if(z>0)L.push({n:"EVG-ZUG",v:z});
   /* Jahreszahlungen im November richten sich nach dem September */
   const sep=isMonth(c)?monthlyAt(c,y,8):monthly;
-  if((c.tarif==="dbevg"||c.tarif==="dbgdl")&&m===10){const f=P.modell==="13"?1:P.modell==="12.5"?0.5:0;if(f>0)L.push({n:"Jährliche Zuwendung",v:Math.round(sep*f*100)/100})}
+  /* Bahn EVG, FGr TV § 10: Jährliche Zuwendung am 25. November = variabler Monatsbetrag (Durchschnitt je Stunde wie beim Urlaubsentgelt
+     mal Jahresarbeitszeit durch 12) plus feste Monatsbeträge im September (Schichtzulage 30 €), beim 12,5er und 13er dazu 50 bzw. 100 % des Monatsentgelts */
+  if(c.tarif==="dbevg"&&m===10){const f=P.modell==="13"?1:P.modell==="12.5"?0.5:0,jaz=+P.jaz>0?+P.jaz:2036,ar=+c.absRate||0;
+    const v=Math.round((sep*f+ar*jaz/12+(ar>0?30:0))*100)/100;if(v>0)L.push({n:"Jährliche Zuwendung",v})}
+  else if(c.tarif==="dbgdl"&&m===10){const f=P.modell==="13"?1:P.modell==="12.5"?0.5:0;if(f>0)L.push({n:"Jährliche Zuwendung",v:Math.round(sep*f*100)/100})}
   if((c.tarif==="tvoed"||c.tarif==="tvl")&&m===10){const pct=P.jsz!=null&&P.jsz!==""?+P.jsz:(c.tarif==="tvoed"?85:0);if(pct>0)L.push({n:"Jahressonderzahlung",v:Math.round(sep*pct)/100})}
   if(c.tarif==="chemie"){
     if(m===10){const pct=P.jl!=null&&P.jl!==""?+P.jl:95;if(pct>0)L.push({n:"Jahresleistung",v:Math.round(sep*pct)/100})}
@@ -1834,10 +1838,12 @@ function dbNormalize(lines){
   const out=[];out.dbCheck=[];let sum=0,cnt=0;
   for(const raw of lines){
     const line=raw.replace(/\s+/g," ").trim();const m=line.match(ROW);
-    if(!m||/,/.test(m[3].split(/\s/)[0])){out.push(raw);continue}
+    /* Kopfzeilen wie Telefon oder Fax sind keine Lohnarten */
+    if(!m||/,/.test(m[3].split(/\s/)[0])||/^(telefon|fax|intern|postfach)\b/i.test(m[1])){out.push(raw);continue}
     const toks=m[3].split(" "),num=[],units=[];
     for(let i=0;i<toks.length;i++){const t=toks[i];
       if(/^\d+-?$/.test(t)){num.push(t);units.push("");continue}
+      {const g=t.match(/^(\d+-?)(st|std|h|tg)$/i);if(g){num.push(g[1]);units.push(g[2]);continue}} /* z. B. 100-ST */
       if(/^(st|std|h|tg|tage|km|stk)$/i.test(t)&&num.length){units[num.length-1]=t;continue}
       break}
     if(!num.length){out.push(raw);continue}
@@ -1853,7 +1859,7 @@ function dbNormalize(lines){
     const val=(/-$/.test(amt)?-1:1)*(+amt.replace(/-/g,""))/100;
     if(/summe\s*brutto/i.test(m[1])){if(cnt>=2)out.dbCheck.push({sum:Math.round(sum*100)/100,soll:val,diff:Math.round((val-sum)*100)/100});sum=0;cnt=0}
     else if(/summe|lohnsteuer|versicherung|vers\b|netto|übertr|ueberw|überw|auszahl/i.test(m[1])){if(/netto|übertr|überw/i.test(m[1])){sum=0;cnt=0}}
-    else{sum+=val;cnt++}
+    else if(!units[num.length-1]){sum+=val;cnt++} /* nur echte Beträge, keine Stunden ohne Betrag */
   }
   return out;
 }
@@ -1935,6 +1941,8 @@ function slipParse(lines){
   {const main=Object.values(runs).filter(r=>r.nr===1).map(r=>({r,ue:totOf(/^(?:überweisung|ueberweisung|auszahlungsbetrag|auszahlung)\b/i,r)})).find(x=>x.ue>0);
    if(main){const r=main.r,sal=totOf(/^netto\b/i,r)||main.ue,nach=totOf(/^übertr\w*\.?\s*nachber/i,r)||0,nr=Object.values(runs).find(x=>x.nr>=2);
      R.pay={ym:`${r.y}-${pad(r.mo)}`,mo:r.mo,y:r.y,total:main.ue,sal:nach>0?sal:main.ue,zu:nach,zuMo:nr?nr.mo:null}}}
+  /* Zulagen kommen aus der Nachberechnung (Lauf /2), eine Korrektur (/3) für einen älteren Monat zählt nicht als Zulagenmonat */
+  if(R.pay){const n2=Object.values(runs).find(x=>x.nr===2);if(n2)R.pay.zuMo=n2.mo}
   R.prof=profFromSlip(lines);
   /* Bahn: Fahrentschädigung, Umkleiden und Prämien aus der Nachberechnung */
   {const e=R.prof.find(x=>x.k==="eg");if(e&&/^[1-6]\d\d$/.test(String(e.v)))R.prof.push({k:"fgr",l:"Funktionsgruppe",v:String(e.v)[0],show:"FGr "+String(e.v)[0]})}
