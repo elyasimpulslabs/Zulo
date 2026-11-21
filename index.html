@@ -1974,6 +1974,9 @@ function slipApply(){
   /* Erste Abrechnung beim Schnellstart: Bahn Abrechnung erkannt, dann gleich den Bahn Tarif nehmen */
   if(state.cfg&&state.cfg.ob){const c0=state.cfg;if(slip.isDB&&!/^db/.test(c0.tarif)){c0.tarif="dbevg";c0.rules=clone(PRESETS.dbevg.rules);c0.modified=false}delete c0.ob}
   const c=cfg(),t=taxCfg(c),R=slip,box=$("slRes");let nR=0,nI=0,nB=0;
+  /* Alte Abrechnung (älter als 2 Monate): nur den Betrag dieses Monats merken, aktuelle Einstellungen nicht ändern */
+  if(slipOld(R)){state.actual=state.actual||{};state.actual[R.pay.ym]={total:R.pay.total,sal:R.pay.sal,zu:R.pay.zu,zuMo:R.pay.zuMo};save();closeSheet();render();
+    toast(`Betrag für ${MONTHS[R.pay.mo-1]} ${R.pay.y} gespeichert, Einstellungen unverändert`);return}
   const on=(g,i)=>{const el=box.querySelector(`[data-g="${g}"][data-i="${i}"]`);return el?(el.type==="checkbox"?el.checked:el.value):null};
   R.base.forEach((b,i)=>{if(!on("base",i))return;nB++;
     if(b.k==="monthly"){c.monthly=b.v;c.payMode="month"}else if(b.k==="hours")c.hours=b.v;
@@ -2001,10 +2004,12 @@ function slipApply(){
     toast(Math.abs(d)<0.05?"Gehalt netto stimmt mit der Abrechnung überein":`Gehalt netto weicht um ${eur(Math.abs(d))} ab`);return}
   toast(`Übernommen: ${nB+nR+nI} Werte`);
 }
+function slipOld(R){if(!R||!R.pay||!R.pay.y)return false;const n=new Date();return new Date(R.pay.y,R.pay.mo-1,1)<new Date(n.getFullYear(),n.getMonth()-2,1)}
 async function slipRun(getLines){
   $("slErr").hidden=true;$("slRes").innerHTML=`<div class="empty">Abrechnung wird auf deinem Gerät gelesen …</div>`;
   try{const lines=await getLines();slip=slipParse(lines);slipRender();
     const notes=[];
+    if(slipOld(slip))notes.push(`<div class="slwarn"><b>Diese Abrechnung ist von ${MONTHS[slip.pay.mo-1]} ${slip.pay.y}.</b> Damals galten andere Werte, etwa Gehalt, Tarif und Krankenkasse. Zulo merkt sich nur den ausgezahlten Betrag für diesen Monat und ändert deine aktuellen Einstellungen nicht. Für den aktuellen Stand lies deine neueste Abrechnung ein.</div>`);
     if(slip.src==="foto")notes.push(`<div class="slnote">Aus einem Foto gelesen. Vergleich die Zahlen bitte kurz mit deiner Abrechnung, bevor du sie übernimmst.</div>`);
     const bad=(slip.check||[]).filter(c=>Math.abs(c.diff)>0.009);
     if(bad.length)notes.push(`<div class="slwarn"><b>Bitte genau prüfen:</b> Die erkannten Zeilen ergeben ${eur(bad[0].sum)}, auf der Abrechnung steht als Summe ${eur(bad[0].soll)}. Ein Wert wurde vermutlich falsch gelesen (Abweichung ${eur(Math.abs(bad[0].diff))}).</div>`);
