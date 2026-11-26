@@ -1707,7 +1707,7 @@ function renderFeed(){
   artN=0;
   const bare=t=>{hero.innerHTML="";tabs.innerHTML="";f.innerHTML=`<div class="empty">${t}</div>`};
   if(newsState==="loading")return bare("News werden geladen");
-  if(newsState==="off")return bare("News sind gerade nicht erreichbar. Deine Schichten und Zuschläge funktionieren trotzdem.");
+  if(newsState==="off")return bare(navigator.onLine===false?"Du bist offline. News kommen, sobald du wieder Internet hast. Alles andere funktioniert auch ohne Netz.":"News sind gerade nicht erreichbar. Deine Schichten und Zuschläge funktionieren trotzdem.");
   /* Meldungen sammeln, gleiche Meldung bei mehreren Gewerkschaften nur einmal zeigen */
   const map=new Map();
   for(const u of sel){const d=newsDocs[u];if(!d||!Array.isArray(d.items))continue;
@@ -1753,14 +1753,21 @@ function openNews(it){
   $("nsSave").onclick=()=>{toggleSave(it);upd()};
   openLayer("newsSheet");
 }
+/* Wieder Internet: News neu laden, falls sie vorher nicht da waren */
+window.addEventListener("online",()=>{if(newsStarted&&newsState==="off"){newsStarted=false;newsState="loading";startNews()}});
 async function startNews(){
   renderUnions();renderFeed();
   if(newsStarted)return;newsStarted=true;
   let db=null;try{db=await window.claude?.use?.("db")}catch(e){}
   if(!db){
     /* Eigenständige Web App: News kommen als statische Datei vom selben Server, ohne Daten des Nutzers */
+    /* Letzter Stand wird auf dem Gerät gemerkt, damit die News auch ohne Internet zu lesen sind */
+    const NCACHE="zulo.newscache";
     try{const r=await fetch("news.json",{cache:"no-cache",credentials:"omit",referrerPolicy:"no-referrer"});if(!r.ok)throw 0;
-      const j=await r.json();newsDocs=j.docs||{};newsMeta=j.meta||null;newsState="ready"}catch(e){newsState="off"}
+      const j=await r.json();newsDocs=j.docs||{};newsMeta=j.meta||null;newsState="ready";
+      try{localStorage.setItem(NCACHE,JSON.stringify(j))}catch(e){}}
+    catch(e){let j=null;try{j=JSON.parse(localStorage.getItem(NCACHE))}catch(x){}
+      if(j&&j.docs){newsDocs=j.docs;newsMeta=j.meta||null;newsState="ready"}else newsState="off"}
     renderFeed();return}
   db.collection("news").onSnapshot(snap=>{
     newsDocs={};snap.docs.forEach(d=>{if(d.id==="_meta")newsMeta=d.data();else newsDocs[d.id]=d.data()});

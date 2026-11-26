@@ -23,7 +23,7 @@ Schichten, Gehalt und Abrechnungen bleiben auf deinem Gerät. Die App lädt kein
 * **Android (Chrome):** Seite öffnen, Menü, „App installieren“ oder „Zum Startbildschirm hinzufügen“
 * **iPhone (Safari):** Seite öffnen, Teilen, „Zum Home Bildschirm“
 
-Danach funktioniert Zulo auch ohne Internet.
+Danach funktioniert Zulo komplett ohne Internet: App öffnen, Schichten eintragen, Lohnabrechnung als PDF oder Foto einlesen. Beim ersten Öffnen mit Internet wird alles Nötige auf dem Gerät gespeichert. Die News zeigen offline den zuletzt geladenen Stand.
 
 ## Dateien
 
